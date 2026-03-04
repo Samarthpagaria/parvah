@@ -1,4 +1,4 @@
-const supabase = require("../config/db");
+const { supabaseAdmin } = require("../config/db");
 
 //admin login
 // POST /api/auth/admin/login
@@ -11,7 +11,7 @@ const loginAdmin = async (req, res) => {
     }
 
     // Step 1 — Sign in with Supabase Auth
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
@@ -62,7 +62,7 @@ const loginPublicUser = async (req, res) => {
     }
 
     // Step 1 — Sign in with Supabase Auth
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
@@ -102,159 +102,156 @@ const loginPublicUser = async (req, res) => {
   }
 };
 
-
-// Public User Register 
+// Public User Register
 // POST /api/auth/public/register
 const registerPublicUser = async (req, res) => {
   try {
-    const { email, password, full_name, phone } = req.body
+    const { email, password, full_name, phone } = req.body;
 
     if (!email || !password || !full_name) {
-      return res.status(400).json({ error: 'Email, password and full name are required' })
+      return res
+        .status(400)
+        .json({ error: "Email, password and full name are required" });
     }
 
     // Step 1 — Create auth account in Supabase Auth
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseAdmin.auth.signUp({
       email,
-      password
-    })
+      password,
+    });
 
     if (error) {
-      return res.status(400).json({ error: error.message })
+      return res.status(400).json({ error: error.message });
     }
 
     // Step 2 — Create profile in public_users table
     const { data: newUser, error: insertError } = await supabase
-      .from('public_users')
+      .from("public_users")
       .insert({
-        id: data.user.id,     // same UUID as auth.users
+        id: data.user.id, // same UUID as auth.users
         email,
         full_name,
-        phone: phone || null
+        phone: phone || null,
       })
       .select()
-      .single()
+      .single();
 
     if (insertError) {
-      console.error('Insert public_user error:', insertError.message)
-      return res.status(500).json({ error: 'Failed to create user profile' })
+      console.error("Insert public_user error:", insertError.message);
+      return res.status(500).json({ error: "Failed to create user profile" });
     }
 
     res.status(201).json({
-      message: 'Registration successful',
+      message: "Registration successful",
       user: {
         id: newUser.id,
         email: newUser.email,
-        full_name: newUser.full_name
-      }
-    })
-
+        full_name: newUser.full_name,
+      },
+    });
   } catch (err) {
-    console.error('registerPublicUser error:', err.message)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("registerPublicUser error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
-}
+};
 
 // Logout
 // POST /api/auth/logout
 const logout = async (req, res) => {
   try {
     // Invalidate the session in Supabase
-    await supabase.auth.signOut()
+    await supabaseAdmin.auth.signOut();
 
-    res.json({ message: 'Logged out successfully' })
-
+    res.json({ message: "Logged out successfully" });
   } catch (err) {
-    console.error('logout error:', err.message)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("logout error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
-}
+};
 
 // Get Current User
 // GET /api/auth/me
 const getMe = async (req, res) => {
   try {
     // req.user is already set by auth middleware
-    const userId = req.user.id
+    const userId = req.user.id;
 
     // Check admin_users first
     const { data: adminUser } = await supabase
-      .from('admin_users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+      .from("admin_users")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
     if (adminUser) {
       return res.json({
-        type: 'admin',
-        user: adminUser
-      })
+        type: "admin",
+        user: adminUser,
+      });
     }
 
     // Check public_users
     const { data: publicUser } = await supabase
-      .from('public_users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+      .from("public_users")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
     if (publicUser) {
       return res.json({
-        type: 'public',
-        user: publicUser
-      })
+        type: "public",
+        user: publicUser,
+      });
     }
 
-    res.status(404).json({ error: 'User profile not found' })
-
+    res.status(404).json({ error: "User profile not found" });
   } catch (err) {
-    console.error('getMe error:', err.message)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("getMe error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
-}
+};
 
 // ── Update Profile ─────────────────────────────────────────
 // PUT /api/auth/profile
 const updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id
-    const { full_name, avatar_url, phone, address } = req.body
+    const userId = req.user.id;
+    const { full_name, avatar_url, phone, address } = req.body;
 
     // Try updating admin_users first
     const { data: adminUser } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('id', userId)
-      .single()
+      .from("admin_users")
+      .select("id")
+      .eq("id", userId)
+      .single();
 
     if (adminUser) {
       const { data, error } = await supabase
-        .from('admin_users')
+        .from("admin_users")
         .update({ full_name, avatar_url })
-        .eq('id', userId)
+        .eq("id", userId)
         .select()
-        .single()
+        .single();
 
-      if (error) return res.status(400).json({ error: error.message })
-      return res.json({ user: data })
+      if (error) return res.status(400).json({ error: error.message });
+      return res.json({ user: data });
     }
 
     // Otherwise update public_users
     const { data, error } = await supabase
-      .from('public_users')
+      .from("public_users")
       .update({ full_name, avatar_url, phone, address })
-      .eq('id', userId)
+      .eq("id", userId)
       .select()
-      .single()
+      .single();
 
-    if (error) return res.status(400).json({ error: error.message })
-    res.json({ user: data })
-
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ user: data });
   } catch (err) {
-    console.error('updateProfile error:', err.message)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error("updateProfile error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
-}
+};
 
 module.exports = {
   loginAdmin,
@@ -262,5 +259,5 @@ module.exports = {
   registerPublicUser,
   logout,
   getMe,
-  updateProfile
-}
+  updateProfile,
+};

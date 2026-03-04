@@ -32,8 +32,8 @@ app.get("/health", (req, res) => {
 
 // ── Routes (added one by one as we build) ─────────────────
 app.use("/api/auth", require("./src/routes/auth.routes"));
-// app.use('/api/organizations', require('./src/routes/org.routes'))
-// app.use('/api/invitations', require('./src/routes/invite.routes'))
+app.use("/api/organizations", require("./src/routes/org.routes"));
+app.use("/api/invitations", require("./src/routes/invitations.routes"));
 // app.use('/api/issues', require('./src/routes/issues.routes'))
 // app.use('/api/analytics', require('./src/routes/analytics.routes'))
 
