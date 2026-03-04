@@ -1,10 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 
 export default function AdminLoginPage() {
@@ -20,190 +16,162 @@ export default function AdminLoginPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setFormData(prev => ({ ...prev, [name]: value }))
     setError('')
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
     if (isLogin) {
-      if (!formData.email || !formData.password) {
-        setError('Please fill in all fields')
-        return
-      }
-      // Mock login - redirect to admin dashboard
-      window.location.href = '/admin/dashboard'
+      if (!formData.email || !formData.password) { setError('Please fill in all fields'); return }
+      window.location.href = '/admin/organizations'
     } else {
-      if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword || !formData.organizationCode) {
-        setError('Please fill in all fields')
-        return
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match')
-        return
-      }
-      // Mock registration - redirect to admin dashboard
-      window.location.href = '/admin/dashboard'
+      if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) { setError('Please fill in all fields'); return }
+      if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return }
+      window.location.href = '/admin/organizations'
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-b from-teal-100 to-transparent rounded-full blur-3xl opacity-30"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-t from-teal-100 to-transparent rounded-full blur-3xl opacity-30"></div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Left panel - decorative */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-teal-600 via-teal-500 to-cyan-400 relative overflow-hidden items-center justify-center p-12">
+        <div className="absolute inset-0 opacity-20">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full border border-white/30"
+              style={{
+                width: `${(i + 1) * 120}px`,
+                height: `${(i + 1) * 120}px`,
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%,-50%)',
+              }}
+            />
+          ))}
+        </div>
+        <div className="relative text-white text-center">
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-white/30">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold mb-3">Parvah Admin</h2>
+          <p className="text-teal-100 text-sm max-w-xs leading-relaxed">
+            Manage organizations, track civic issues, and coordinate staff with ease.
+          </p>
+          <div className="mt-10 grid grid-cols-3 gap-4 text-center">
+            {[['1,234', 'Issues Tracked'], ['48', 'Staff Members'], ['3', 'Organizations']].map(([val, label]) => (
+              <div key={label} className="bg-white/10 rounded-xl p-3 backdrop-blur-sm border border-white/20">
+                <p className="text-xl font-bold">{val}</p>
+                <p className="text-teal-100 text-xs mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 shadow-lg mb-4">
-            <span className="text-2xl font-bold text-white">A</span>
+      {/* Right panel - form */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 mb-10 lg:hidden">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center shadow-sm">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <span className="text-lg font-bold text-gray-900">Parvah</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Parvah</h1>
-          <p className="text-gray-600">Admin Portal</p>
-        </div>
 
-        {/* Card */}
-        <Card className="p-6 shadow-xl border-0 bg-white">
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6 bg-white rounded-xl p-1 shadow-sm border border-teal-100">
-            <button
-              onClick={() => {
-                setIsLogin(true)
-                setError('')
-                setFormData({ email: '', password: '', confirmPassword: '', fullName: '', organizationCode: '' })
-              }}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                isLogin
-                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => {
-                setIsLogin(false)
-                setError('')
-                setFormData({ email: '', password: '', confirmPassword: '', fullName: '', organizationCode: '' })
-              }}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                !isLogin
-                  ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Register
-            </button>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">{isLogin ? 'Welcome back' : 'Create account'}</h1>
+          <p className="text-sm text-gray-400 mb-8">{isLogin ? 'Sign in to your admin account.' : 'Set up your admin account.'}</p>
+
+          {/* Toggle */}
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+            {['Sign In', 'Register'].map((tab, idx) => (
+              <button
+                key={tab}
+                onClick={() => { setIsLogin(idx === 0); setError('') }}
+                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${(isLogin ? idx === 0 : idx === 1)
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+            <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm">
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <>
-                <div>
-                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700 mb-2 block">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    className="border-teal-200 focus:border-teal-500 focus:ring-teal-500"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="organizationCode" className="text-sm font-medium text-gray-700 mb-2 block">Organization Code</Label>
-                  <Input
-                    id="organizationCode"
-                    name="organizationCode"
-                    type="text"
-                    placeholder="Enter organization code"
-                    value={formData.organizationCode}
-                    onChange={handleInputChange}
-                    className="border-teal-200 focus:border-teal-500 focus:ring-teal-500"
-                  />
-                </div>
-              </>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Full Name</label>
+                <input
+                  name="fullName" type="text" placeholder="Your full name"
+                  value={formData.fullName} onChange={handleInputChange}
+                  className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all bg-white"
+                />
+              </div>
             )}
 
             <div>
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700 mb-2 block">Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="admin@example.com"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="border-teal-200 focus:border-teal-500 focus:ring-teal-500"
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Email Address</label>
+              <input
+                name="email" type="email" placeholder="admin@example.com"
+                value={formData.email} onChange={handleInputChange}
+                className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all bg-white"
               />
             </div>
 
             <div>
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700 mb-2 block">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="border-teal-200 focus:border-teal-500 focus:ring-teal-500"
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-gray-600">Password</label>
+                {isLogin && <button type="button" className="text-xs text-teal-600 hover:text-teal-700 font-medium transition-colors">Forgot?</button>}
+              </div>
+              <input
+                name="password" type="password" placeholder="••••••••"
+                value={formData.password} onChange={handleInputChange}
+                className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all bg-white"
               />
             </div>
 
             {!isLogin && (
               <div>
-                <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 mb-2 block">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="border-teal-200 focus:border-teal-500 focus:ring-teal-500"
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Confirm Password</label>
+                <input
+                  name="confirmPassword" type="password" placeholder="••••••••"
+                  value={formData.confirmPassword} onChange={handleInputChange}
+                  className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all bg-white"
                 />
               </div>
             )}
 
-            <Button
+            <button
               type="submit"
-              className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium py-2 rounded-lg shadow-md transition-all"
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-colors mt-2"
             >
               {isLogin ? 'Sign In' : 'Create Account'}
-            </Button>
+            </button>
           </form>
 
-          {/* Footer */}
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <p className="text-center text-sm text-gray-600">
-              Not an admin? <Link href="/login" className="text-teal-600 hover:text-teal-700 font-medium">User Login</Link>
+          <div className="mt-8 pt-6 border-t border-gray-100 space-y-2 text-center">
+            <p className="text-sm text-gray-400">
+              Not an admin?{' '}
+              <Link href="/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">Citizen Login</Link>
+            </p>
+            <p className="text-sm text-gray-400">
+              Staff member?{' '}
+              <Link href="/staff/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">Staff Login</Link>
             </p>
           </div>
-        </Card>
-
-        {/* Links */}
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p>Staff member?{' '}
-            <Link href="/staff/login" className="text-teal-600 hover:text-teal-700 font-medium">
-              Staff Login
-            </Link>
-          </p>
         </div>
       </div>
     </div>

@@ -1,162 +1,176 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-cyan-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      <header className="border-b border-gray-100 bg-white sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center shadow-sm">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-2xl font-bold text-foreground">Parvah</span>
+            <span className="text-xl font-bold text-gray-900">Parvah</span>
           </Link>
-          <div className="flex gap-3">
-            <Button variant="outline" asChild>
-              <Link href="/admin/login">Admin</Link>
-            </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
-              <Link href="/login">Citizen Login</Link>
-            </Button>
+          <div className="flex gap-2">
+            <Link href="/admin/login">
+              <Button variant="outline" className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium">
+                Admin
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium shadow-sm">
+                Citizen Login
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="container mx-auto px-4 py-20">
-        <div className="max-w-3xl mx-auto text-center mb-20">
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 text-balance">
-            Civic Issues, Simplified
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 text-balance">
-            Parvah is a comprehensive civic issue tracking and management platform connecting citizens, administrators, and staff to resolve community problems efficiently.
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
-              <Link href="/login">Report an Issue</Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/admin/login">Admin Portal</Link>
-            </Button>
+      {/* Hero */}
+      <main>
+        <section className="max-w-7xl mx-auto px-6 pt-24 pb-20 text-center">
+          <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6 border border-teal-100">
+            <span className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
+            Civic Issue Management Platform
           </div>
-        </div>
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight tracking-tight">
+            Track. Manage.
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-500">Resolve.</span>
+          </h1>
+          <p className="text-lg text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Parvah connects citizens, administrators, and staff to resolve community problems efficiently — with real-time tracking, Kanban workflows, and role-based access.
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Link href="/login">
+              <Button size="lg" className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl px-8 shadow-sm font-medium">
+                Report an Issue
+              </Button>
+            </Link>
+            <Link href="/admin/login">
+              <Button size="lg" variant="outline" className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 px-8 font-medium">
+                Admin Portal
+              </Button>
+            </Link>
+          </div>
+        </section>
 
-        {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
-          <Card className="p-6 border-0 shadow-md hover:shadow-lg transition-all">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">For Citizens</h3>
-            <p className="text-muted-foreground mb-4">
-              Easily report civic issues in your community, track their progress, and stay updated with real-time notifications.
-            </p>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/login">Citizen Portal</Link>
-            </Button>
-          </Card>
-
-          <Card className="p-6 border-0 shadow-md hover:shadow-lg transition-all">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">For Administrators</h3>
-            <p className="text-muted-foreground mb-4">
-              Manage organizations, coordinate staff, and oversee all civic issues through an intuitive Kanban board.
-            </p>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/admin/login">Admin Portal</Link>
-            </Button>
-          </Card>
-
-          <Card className="p-6 border-0 shadow-md hover:shadow-lg transition-all">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">For Staff</h3>
-            <p className="text-muted-foreground mb-4">
-              Receive issue assignments, update progress, and mark tasks as completed with detailed notes.
-            </p>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/staff/register">Staff Registration</Link>
-            </Button>
-          </Card>
-        </div>
-
-        {/* How It Works Section */}
-        <div className="bg-white rounded-lg border border-border p-12 mb-20">
-          <h2 className="text-3xl font-bold text-foreground text-center mb-12">How Parvah Works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Features */}
+        <section className="max-w-7xl mx-auto px-6 pb-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
               {
-                number: '1',
-                title: 'Report Issues',
-                description: 'Citizens report civic problems with location, category, and priority details.'
+                icon: (
+                  <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                ),
+                title: 'For Citizens',
+                description: 'Report civic issues in seconds. Attach location, photos, and priority. Track resolution in real-time.',
+                href: '/login',
+                cta: 'Citizen Portal',
+                color: 'bg-teal-50 border-teal-100',
               },
               {
-                number: '2',
-                title: 'Manage & Assign',
-                description: 'Admins review issues and assign them to appropriate staff members via dashboard.'
+                icon: (
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                ),
+                title: 'For Administrators',
+                description: 'Manage multiple organizations. Assign issues to staff via Kanban boards. Invite members with role-based access.',
+                href: '/admin/login',
+                cta: 'Admin Portal',
+                color: 'bg-blue-50 border-blue-100',
               },
               {
-                number: '3',
-                title: 'Resolve & Track',
-                description: 'Staff update progress and mark issues complete. Citizens receive real-time updates.'
+                icon: (
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                ),
+                title: 'For Staff',
+                description: 'View assigned issues clearly. Update status with notes. Mark jobs complete and close the loop.',
+                href: '/staff/register',
+                cta: 'Staff Portal',
+                color: 'bg-purple-50 border-purple-100',
               },
-            ].map((step, idx) => (
-              <div key={idx} className="text-center">
-                <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                  {step.number}
+            ].map(f => (
+              <div key={f.title} className={`rounded-2xl border ${f.color} p-6`}>
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-4 shadow-sm border border-white">
+                  {f.icon}
                 </div>
-                <h3 className="font-bold text-foreground mb-2">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
+                <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-sm text-gray-500 mb-5 leading-relaxed">{f.description}</p>
+                <Link href={f.href} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700 hover:text-teal-600 transition-colors">
+                  {f.cta}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Demo Credentials */}
-        <div className="bg-primary/10 border border-primary/20 rounded-lg p-8 text-center mb-20">
-          <h3 className="text-xl font-bold text-foreground mb-4">Test the Platform</h3>
-          <p className="text-muted-foreground mb-6">
-            You can access all portals with the login pages. No credentials needed - just click to access the dashboards!
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
-              <Link href="/admin/login">Try Admin Portal</Link>
-            </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
-              <Link href="/login">Try Citizen Portal</Link>
-            </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
-              <Link href="/staff/register">Try Staff Registration</Link>
-            </Button>
+        {/* How it works */}
+        <section className="bg-gray-50 border-t border-gray-100">
+          <div className="max-w-5xl mx-auto px-6 py-20 text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-12">How Parvah Works</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                { num: '1', title: 'Report Issues', desc: 'Citizens submit civic issues with location, priority, and category.' },
+                { num: '2', title: 'Manage & Assign', desc: 'Admins review on a Kanban board and assign issues to qualified staff.' },
+                { num: '3', title: 'Resolve & Track', desc: 'Staff update progress and close issues. Citizens see status changes live.' },
+              ].map(s => (
+                <div key={s.num} className="text-center">
+                  <div className="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center font-bold mx-auto mb-4 shadow-sm">{s.num}</div>
+                  <h3 className="font-semibold text-gray-800 mb-2">{s.title}</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
+
+        {/* CTA */}
+        <section className="max-w-7xl mx-auto px-6 py-16">
+          <div className="bg-gradient-to-r from-teal-600 to-cyan-500 rounded-3xl p-10 text-center text-white shadow-lg">
+            <h3 className="text-2xl font-bold mb-2">Ready to explore?</h3>
+            <p className="text-teal-100 mb-8 text-sm">Try any of the portals — no credentials required for the demo.</p>
+            <div className="flex gap-3 justify-center flex-wrap">
+              <Link href="/admin/login">
+                <button className="bg-white text-teal-700 hover:bg-teal-50 font-semibold px-6 py-2.5 rounded-xl text-sm shadow-sm transition-colors">Try Admin Portal</button>
+              </Link>
+              <Link href="/login">
+                <button className="bg-white/20 hover:bg-white/30 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors border border-white/20">Citizen Portal</button>
+              </Link>
+              <Link href="/staff/register">
+                <button className="bg-white/20 hover:bg-white/30 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors border border-white/20">Staff Portal</button>
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-white/50 backdrop-blur-sm py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground mb-2">
-            Parvah - Civic Issue Tracking and Management Platform
-          </p>
-          <p className="text-xs text-muted-foreground">
-            © 2024 Parvah. All rights reserved. | Frontend UI Implementation
-          </p>
+      <footer className="border-t border-gray-100 py-8">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center">
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Parvah</span>
+          </div>
+          <p className="text-xs text-gray-400">© 2024 Parvah. Civic Issue Tracking & Management Platform.</p>
         </div>
       </footer>
     </div>
