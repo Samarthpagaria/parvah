@@ -38,7 +38,7 @@ export default function UserLoginPage() {
         return
       }
       // Mock login - redirect to user dashboard
-      window.location.href = '/dashboard'
+      window.location.href = '/user/dashboard'
     } else {
       if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone || !formData.address || !formData.organization) {
         setError('Please fill in all fields')
@@ -49,7 +49,7 @@ export default function UserLoginPage() {
         return
       }
       // Mock registration - redirect to user dashboard
-      window.location.href = '/dashboard'
+      window.location.href = '/user/dashboard'
     }
   }
 
