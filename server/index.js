@@ -1,55 +1,65 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const env = require("./src/config/env");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize Supabase Admin Client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+// ── Security Middleware ────────────────────────────────────
+app.use(helmet());
+
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
 );
 
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 
-app.use(cors());
-app.use(express.json());
-
-app.get('/api/hello', (req, res) => {
-    res.json({ message: 'Hello from Express (JS) with Supabase!' });
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Parvah backend is running",
+    timestamp: new Date().toISOString(),
+  });
 });
 
-app.get('/api/test-db', async (req, res) => {
-    try {
-        const { data, error } = await supabase.from('test_table').select('*').limit(10);
-        if (error) throw error;
-        res.json({ success: true, data });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
+// ── Routes (added one by one as we build) ─────────────────
+app.use("/api/auth", require("./src/routes/auth.routes"));
+// app.use('/api/organizations', require('./src/routes/org.routes'))
+// app.use('/api/invitations', require('./src/routes/invite.routes'))
+// app.use('/api/issues', require('./src/routes/issues.routes'))
+// app.use('/api/analytics', require('./src/routes/analytics.routes'))
+
+// ── 404 Handler ────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl,
+  });
 });
 
-app.post('/api/test-db', async (req, res) => {
-    try {
-        const { content } = req.body;
-        if (!content) {
-            return res.status(400).json({ success: false, error: 'Content is required' });
-        }
-        const { data, error } = await supabase
-            .from('test_table')
-            .insert([{ content }])
-            .select();
-
-        if (error) throw error;
-        res.json({ success: true, data });
-    } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
-    }
+// ── Global Error Handler ───────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error("Server error:", err.message);
+  res.status(err.status || 500).json({
+    error:
+      process.env.NODE_ENV === "production"
+        ? "Internal server error"
+        : err.message,
+  });
 });
 
-
-
+// ── Start Server ───────────────────────────────────────────
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`✅ CivicTrack backend running on http://localhost:${PORT}`);
+  console.log(`📋 Environment: ${process.env.NODE_ENV || "development"}`);
 });
+
+module.exports = app;

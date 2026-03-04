@@ -1,0 +1,3 @@
+// 3. lib/auth.ts — Auth Helper FunctionsCreated a file, read a fileCreated a file, read a file
+// Simple Summary of When to Use Each
+// SituationUseLogin / Signup formlib/auth.ts → signIn() / signUpPublicUser()Get user in a server pagelib/supabase.server.ts → createSupabaseServerClient()Send JWT to Express backendlib/auth.ts → getAccessToken()Logout buttonlib/auth.ts → signOut()Google login buttonlib/auth.ts → signInWithGoogle()
