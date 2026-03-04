@@ -28,7 +28,7 @@ const verifySignedToken = (signedToken) => {
 
 // ── Helper: Get user's role in org ────────────────────────
 const getOrgRole = async (userId, orgId) => {
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from("org_admin_members")
     .select("role")
     .eq("admin_user_id", userId)
@@ -58,7 +58,7 @@ const sendInvite = async (req, res) => {
     const tokenHash = await bcrypt.hash(rawToken, 10);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: invitation, error } = await supabase
+    const { data: invitation, error } = await supabaseAdmin
       .from("admin_invitations")
       .insert({
         org_id,
@@ -108,7 +108,7 @@ const listInvites = async (req, res) => {
         .json({ error: "Access denied. edit role or above required." });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("admin_invitations")
       .select(
         `
@@ -139,7 +139,7 @@ const revokeInvite = async (req, res) => {
   try {
     const { inviteId } = req.params;
 
-    const { data: invitation, error: fetchError } = await supabase
+    const { data: invitation, error: fetchError } = await supabaseAdmin
       .from("admin_invitations")
       .select("*")
       .eq("id", inviteId)
@@ -160,7 +160,7 @@ const revokeInvite = async (req, res) => {
         .json({ error: "Only pending invitations can be revoked." });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("admin_invitations")
       .update({ status: "revoked" })
       .eq("id", inviteId);
@@ -185,7 +185,7 @@ const verifyToken = async (req, res) => {
 
     const { inviteId, rawToken } = decoded;
 
-    const { data: invitation, error } = await supabase
+    const { data: invitation, error } = await supabaseAdmin
       .from("admin_invitations")
       .select(
         `
@@ -236,7 +236,7 @@ const acceptInvite = async (req, res) => {
 
     const { inviteId, rawToken } = decoded;
 
-    const { data: invitation, error: fetchError } = await supabase
+    const { data: invitation, error: fetchError } = await supabaseAdmin
       .from("admin_invitations")
       .select("*")
       .eq("id", inviteId)
@@ -270,7 +270,7 @@ const acceptInvite = async (req, res) => {
 
     if (adminError) throw adminError;
 
-    const { error: memberError } = await supabase
+    const { error: memberError } = await supabaseAdmin
       .from("org_admin_members")
       .insert({
         org_id: invitation.org_id,
@@ -281,7 +281,7 @@ const acceptInvite = async (req, res) => {
 
     if (memberError && memberError.code !== "23505") throw memberError;
 
-    await supabase
+    await supabaseAdmin
       .from("admin_invitations")
       .update({ status: "accepted", accepted_at: new Date().toISOString() })
       .eq("id", inviteId);

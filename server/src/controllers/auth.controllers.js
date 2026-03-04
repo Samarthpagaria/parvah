@@ -21,7 +21,7 @@ const loginAdmin = async (req, res) => {
     }
 
     // Step 2 — Check if this user exists in admin_users table
-    const { data: adminUser, error: adminError } = await supabase
+    const { data: adminUser, error: adminError } = await supabaseAdmin
       .from("admin_users")
       .select("*")
       .eq("id", data.user.id)
@@ -72,7 +72,7 @@ const loginPublicUser = async (req, res) => {
     }
 
     // Step 2 — Check if user exists in public_users table
-    const { data: publicUser, error: userError } = await supabase
+    const { data: publicUser, error: userError } = await supabaseAdmin
       .from("public_users")
       .select("*")
       .eq("id", data.user.id)
@@ -125,7 +125,7 @@ const registerPublicUser = async (req, res) => {
     }
 
     // Step 2 — Create profile in public_users table
-    const { data: newUser, error: insertError } = await supabase
+    const { data: newUser, error: insertError } = await supabaseAdmin
       .from("public_users")
       .insert({
         id: data.user.id, // same UUID as auth.users
@@ -177,7 +177,7 @@ const getMe = async (req, res) => {
     const userId = req.user.id;
 
     // Check admin_users first
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await supabaseAdmin
       .from("admin_users")
       .select("*")
       .eq("id", userId)
@@ -191,7 +191,7 @@ const getMe = async (req, res) => {
     }
 
     // Check public_users
-    const { data: publicUser } = await supabase
+    const { data: publicUser } = await supabaseAdmin
       .from("public_users")
       .select("*")
       .eq("id", userId)
@@ -219,14 +219,14 @@ const updateProfile = async (req, res) => {
     const { full_name, avatar_url, phone, address } = req.body;
 
     // Try updating admin_users first
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await supabaseAdmin
       .from("admin_users")
       .select("id")
       .eq("id", userId)
       .single();
 
     if (adminUser) {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from("admin_users")
         .update({ full_name, avatar_url })
         .eq("id", userId)
@@ -238,7 +238,7 @@ const updateProfile = async (req, res) => {
     }
 
     // Otherwise update public_users
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("public_users")
       .update({ full_name, avatar_url, phone, address })
       .eq("id", userId)

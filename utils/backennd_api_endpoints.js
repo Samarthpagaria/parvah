@@ -1,41 +1,211 @@
-// 🔐 Authentication (/api/auth)
-// POST /api/auth/admin/login — Admin login
-// POST /api/auth/public/login — Public user login
-// POST /api/auth/public/register — Public user registration
-// GET /api/auth/me — Get current user profile (requires JWT)
-// PUT /api/auth/profile — Update profile info (requires JWT)
-// POST /api/auth/logout — Logout and clear session (requires JWT)
-// 🏢 Organizations (/api/organizations)
-// GET /api/organizations — List all organizations (Super Admin only)
-// POST /api/organizations — Create new organization (Super Admin only)
-// DELETE /api/organizations/:orgId — Deactivate an organization (Super Admin only)
-// GET /api/organizations/:orgId — Get organization details (Admin/Staff)
-// PUT /api/organizations/:orgId — Update organization settings (Org Owner only)
-// GET /api/organizations/:orgId/members — List organization staff (Edit role+)
-// DELETE /api/organizations/:orgId/members/:memberId — Remove staff member (Org Owner only)
-// ✉️ Invitations (/api/invitations)
-// POST /api/invitations — Send invite link to email (Edit role+)
-// GET /api/invitations/:orgId — List all invites for an organization (Edit role+)
-// DELETE /api/invitations/:inviteId — Revoke a pending invite (Edit role+)
-// GET /api/invitations/verify/:token — Public: Verify invite link validity
-// POST /api/invitations/accept — Public: Accept invite and create account
-// 🎫 Issues & Reporting (/api/issues)
-// GET /api/issues — List issues (Public User: own | Admin: org-wide)
-// POST /api/issues — Submit a new issue report (Public User)
-// GET /api/issues/:issueId — Get specific issue details
-// POST /api/issues/:issueId/upvote — Upvote an issue (Public User)
-// GET /api/issues/:issueId/activity — View audit trail/activity log for an issue
-// GET /api/issues/:issueId/attachments — Get file attachments for an issue
-// POST /api/issues/:issueId/attachments — Upload new attachment (Reporter/Admin)
-// PUT /api/issues/:issueId — Update issue description/title (Admin)
-// PUT /api/issues/:issueId/status — Update resolution status (Staff/Admin)
-// PUT /api/issues/:issueId/assign — Assign issue to staff member (Edit role+)
-// PUT /api/issues/:issueId/priority — Update issue priority (Edit role+)
-// DELETE /api/issues/:issueId — Deactivate an issue report (Org Owner only)
-// 📊 Analytics (/api/analytics)
-// GET /api/analytics/overview/:orgId — Summary of counts (Total, Resolved, etc)
-// GET /api/analytics/trends/:orgId — Daily/Weekly issue count trends
-// GET /api/analytics/by-category/:orgId — Breakdown by category (Traffic, Fire, etc)
-// GET /api/analytics/by-status/:orgId — Breakdown by current status
-// GET /api/analytics/staff-performance/:orgId — Analysis of staff resolution rates
-// GET /api/analytics/resolution-time/:orgId — Average time to resolve issues
+/**
+ * 🚀 Parvah Frontend API Utility
+ * This file contains ready-to-use functions for your React/Next.js frontend.
+ * Each function corresponds to an Express backend endpoint.
+ */
+
+const BASE_URL = 'http://localhost:5000/api';
+
+/**
+ * Global API Fetch Helper
+ * -----------------------
+ * Automatically attaches the JWT from localStorage and handles error responses.
+ */
+async function apiFetch(endpoint, options = {}) {
+  const token = localStorage.getItem('parvah_token');
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json().catch(() => ({ error: 'Response parsing failed' }));
+
+  if (!response.ok) {
+    throw new Error(data.error || 'API request failed');
+  }
+
+  return data;
+}
+
+/**
+ * 🔐 AUTHENTICATION MODULE
+ * -------------------------
+ */
+
+export const authAPI = {
+  // Admin Login
+  loginAdmin: async (email, password) => {
+    const data = await apiFetch('/auth/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    if (data.token) {
+      localStorage.setItem('parvah_token', data.token);
+      localStorage.setItem('parvah_user_type', 'admin');
+    }
+    return data;
+  },
+
+  // Public User Login
+  loginPublic: async (email, password) => {
+    const data = await apiFetch('/auth/public/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    if (data.token) {
+      localStorage.setItem('parvah_token', data.token);
+      localStorage.setItem('parvah_user_type', 'public');
+    }
+    return data;
+  },
+
+  // Public User Register
+  registerPublic: (userData) => apiFetch('/auth/public/register', {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  }),
+
+  // Get Current Profile
+  getMe: () => apiFetch('/auth/me'),
+
+  // Update Profile
+  updateProfile: (profileData) => apiFetch('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profileData),
+  }),
+
+  // Sign out
+  logout: async () => {
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' });
+    } finally {
+      localStorage.removeItem('parvah_token');
+      localStorage.removeItem('parvah_user_type');
+    }
+  },
+};
+
+/**
+ * 🏢 ORGANIZATION MODULE
+ * -----------------------
+ */
+
+export const orgAPI = {
+  // List all (Super Admin only)
+  listAll: () => apiFetch('/organizations'),
+
+  // Create new (Super Admin only)
+  create: (orgData) => apiFetch('/organizations', {
+    method: 'POST',
+    body: JSON.stringify(orgData),
+  }),
+
+  // Get details (id, owner, staff list)
+  getDetails: (orgId) => apiFetch(`/organizations/${orgId}`),
+
+  // Update settings
+  update: (orgId, orgData) => apiFetch(`/organizations/${orgId}`, {
+    method: 'PUT',
+    body: JSON.stringify(orgData),
+  }),
+
+  // Deactivate (Super Admin only)
+  deactivate: (orgId) => apiFetch(`/organizations/${orgId}`, {
+    method: 'DELETE',
+  }),
+
+  // List members
+  listMembers: (orgId) => apiFetch(`/organizations/${orgId}/members`),
+
+  // Remove member
+  removeMember: (orgId, memberId) => apiFetch(`/organizations/${orgId}/members/${memberId}`, {
+    method: 'DELETE',
+  }),
+};
+
+/**
+ * ✉️ INVITATION MODULE
+ * --------------------
+ */
+
+export const inviteAPI = {
+  // Send invite
+  send: (orgId, email, role) => apiFetch('/invitations', {
+    method: 'POST',
+    body: JSON.stringify({ org_id: orgId, invitee_email: email, role }),
+  }),
+
+  // List pending invites
+  listPending: (orgId) => apiFetch(`/invitations/${orgId}`),
+
+  // Revoke invite
+  revoke: (inviteId) => apiFetch(`/invitations/${inviteId}`, {
+    method: 'DELETE',
+  }),
+
+  // Verify token (Public page)
+  verifyToken: (token) => apiFetch(`/invitations/verify/${token}`),
+
+  // Finalize signup (Public page)
+  accept: (token, fullName, password) => apiFetch('/invitations/accept', {
+    method: 'POST',
+    body: JSON.stringify({ token, full_name: fullName, password }),
+  }),
+};
+
+/**
+ * 🎫 ISSUES MODULE
+ * -----------------
+ */
+
+export const issueAPI = {
+  // Fetch list (filters handled automatically by backend)
+  list: () => apiFetch('/issues'),
+
+  // Report new issue
+  report: (issueData) => apiFetch('/issues', {
+    method: 'POST',
+    body: JSON.stringify(issueData),
+  }),
+
+  // Get specific issue details
+  getDetails: (issueId) => apiFetch(`/issues/${issueId}`),
+
+  // Cast upvote
+  upvote: (issueId) => apiFetch(`/issues/${issueId}/upvote`, {
+    method: 'POST',
+  }),
+
+  // Update status (Staff/Admin)
+  updateStatus: (issueId, status) => apiFetch(`/issues/${issueId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  }),
+
+  // Assign staff
+  assignStaff: (issueId, staffId) => apiFetch(`/issues/${issueId}/assign`, {
+    method: 'PUT',
+    body: JSON.stringify({ admin_user_id: staffId }),
+  }),
+};
+
+/**
+ * 📊 ANALYTICS MODULE
+ * -------------------
+ */
+
+export const analyticsAPI = {
+  getOverview: (orgId) => apiFetch(`/analytics/overview/${orgId}`),
+  getTrends: (orgId) => apiFetch(`/analytics/trends/${orgId}`),
+  getByCategory: (orgId) => apiFetch(`/analytics/by-category/${orgId}`),
+};
