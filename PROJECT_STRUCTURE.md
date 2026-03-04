@@ -15,9 +15,11 @@ Parvah is a comprehensive civic issue tracking and management platform that conn
 - **`/admin/login`** - Admin login and registration page (separate from user login)
 - **`/admin/dashboard`** - Main admin dashboard with:
   - Organization selector
-  - Action cards (Create Organization, Add Admin, Add Staff)
+  - Action cards (Create Organization, Manage Members, Quick Add Admin, Quick Add Staff)
   - Quick statistics
-  - Modals for managing organizations, admins, and staff
+- **`/admin/organizations/new`** - Dedicated page for creating a new organization
+- **`/admin/organization/[orgId]/members`** - Manage and invite organization members (Read, Edit, Staff roles)
+- **`/admin/accept-invite`** - User profile completion page for invited admins
 - **`/admin/organization/[orgId]/kanban`** - Kanban board for issue management with 4 columns:
   - Open (red)
   - In Progress (yellow)
@@ -26,7 +28,7 @@ Parvah is a comprehensive civic issue tracking and management platform that conn
 
 #### User (Citizen) Portal
 - **`/login`** - User login and registration page (separate from admin login)
-- **`/user/dashboard`** - User dashboard with:
+- **`/dashboard`** - User dashboard with:
   - Dashboard with issue statistics
   - Issue reporting form (modal)
   - Issue list with filtering by status

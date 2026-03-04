@@ -40,11 +40,10 @@ export default function AdminDashboard() {
               <button
                 key={org.id}
                 onClick={() => setSelectedOrg(org.id)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  selectedOrg === org.id
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedOrg === org.id
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground hover:bg-border'
-                }`}
+                  }`}
               >
                 {org.name}
               </button>
@@ -73,28 +72,46 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ActionCard
-            icon="building"
-            title="Create New Organization"
-            description="Register a new organization in the system"
-            onClick={() => setShowOrgModal(true)}
-            color="from-blue-50 to-blue-100"
-          />
-          <ActionCard
-            icon="user-plus"
-            title="Add Admin"
-            description="Assign a new admin to manage organization"
-            onClick={() => setShowAdminModal(true)}
-            color="from-teal-50 to-teal-100"
-          />
-          <ActionCard
-            icon="users"
-            title="Add Staff"
-            description="Add staff members to handle issues"
-            onClick={() => setShowStaffModal(true)}
-            color="from-cyan-50 to-cyan-100"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Link href="/admin/organizations/new" className="block group">
+            <ActionCard
+              icon="building"
+              title="Create Organization"
+              description="Register a new entity for issue tracking"
+              color="from-blue-50 to-blue-100"
+              className="h-full border-slate-200 group-hover:border-blue-300 transition-all group-hover:shadow-lg rounded-2xl"
+            />
+          </Link>
+
+          <Link href={`/admin/organization/${selectedOrg}/members`} className="block group">
+            <ActionCard
+              icon="users"
+              title="Manage Members"
+              description="Invite and manage admin roles for this org"
+              color="from-purple-50 to-purple-100"
+              className="h-full border-slate-200 group-hover:border-purple-300 transition-all group-hover:shadow-lg rounded-2xl"
+            />
+          </Link>
+
+          <div onClick={() => setShowAdminModal(true)} className="cursor-pointer group">
+            <ActionCard
+              icon="user-plus"
+              title="Quick Add Admin"
+              description="Assign a new admin to the system"
+              color="from-teal-50 to-teal-100"
+              className="h-full border-slate-200 group-hover:border-teal-300 transition-all group-hover:shadow-lg rounded-2xl"
+            />
+          </div>
+
+          <div onClick={() => setShowStaffModal(true)} className="cursor-pointer group">
+            <ActionCard
+              icon="users"
+              title="Quick Add Staff"
+              description="Add staff members to handle issues"
+              color="from-cyan-50 to-cyan-100"
+              className="h-full border-slate-200 group-hover:border-cyan-300 transition-all group-hover:shadow-lg rounded-2xl"
+            />
+          </div>
         </div>
 
         {/* Quick Stats */}

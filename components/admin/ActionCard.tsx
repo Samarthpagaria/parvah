@@ -5,8 +5,9 @@ interface ActionCardProps {
   icon: 'building' | 'user-plus' | 'users'
   title: string
   description: string
-  onClick: () => void
+  onClick?: () => void
   color?: string
+  className?: string
 }
 
 const iconMap = {
@@ -27,9 +28,19 @@ const iconMap = {
   ),
 }
 
-export default function ActionCard({ icon, title, description, onClick, color = 'from-blue-50 to-blue-100' }: ActionCardProps) {
+export default function ActionCard({
+  icon,
+  title,
+  description,
+  onClick,
+  color = 'from-blue-50 to-blue-100',
+  className = ''
+}: ActionCardProps) {
   return (
-    <Card className={`p-6 border-0 shadow-md bg-gradient-to-br ${color} hover:shadow-lg transition-shadow cursor-pointer group`} onClick={onClick}>
+    <Card
+      className={`p-6 border-0 shadow-md bg-gradient-to-br ${color} hover:shadow-lg transition-all cursor-pointer group flex flex-col justify-between ${className}`}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="p-3 bg-white rounded-lg group-hover:scale-110 transition-transform">
           {iconMap[icon]}

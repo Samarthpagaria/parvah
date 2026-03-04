@@ -31,14 +31,14 @@ export default function UserLoginPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     if (isLogin) {
       if (!formData.email || !formData.password) {
         setError('Please fill in all fields')
         return
       }
       // Mock login - redirect to user dashboard
-      window.location.href = '/user/dashboard'
+      window.location.href = '/dashboard'
     } else {
       if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone || !formData.address || !formData.organization) {
         setError('Please fill in all fields')
@@ -49,7 +49,7 @@ export default function UserLoginPage() {
         return
       }
       // Mock registration - redirect to user dashboard
-      window.location.href = '/user/dashboard'
+      window.location.href = '/dashboard'
     }
   }
 
@@ -81,11 +81,10 @@ export default function UserLoginPage() {
                 setError('')
                 setFormData({ email: '', password: '', confirmPassword: '', fullName: '', phone: '', address: '', organization: '' })
               }}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                isLogin
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${isLogin
                   ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               Sign In
             </button>
@@ -95,11 +94,10 @@ export default function UserLoginPage() {
                 setError('')
                 setFormData({ email: '', password: '', confirmPassword: '', fullName: '', phone: '', address: '', organization: '' })
               }}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
-                !isLogin
+              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${!isLogin
                   ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               Register
             </button>
