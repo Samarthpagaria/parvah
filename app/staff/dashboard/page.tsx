@@ -129,7 +129,7 @@ export default function StaffDashboard() {
               <p className="text-xs text-gray-400">City Municipality</p>
             </div>
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">SW</div>
-            <button onClick={() => window.location.href = '/staff/login'} className="text-sm text-gray-400 hover:text-gray-600 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">Logout</button>
+            <button onClick={() => window.location.href = '/admin/login'} className="text-sm text-gray-400 hover:text-gray-600 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">Logout</button>
           </div>
         </div>
       </header>
@@ -175,8 +175,8 @@ export default function StaffDashboard() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${filter === f
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'
+                ? 'bg-gray-900 text-white'
+                : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'
                 }`}
             >
               {f === 'all' ? 'All Issues' : f === 'assigned' ? 'Pending' : f === 'in-progress' ? 'In Progress' : 'Completed'}
