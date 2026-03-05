@@ -148,12 +148,8 @@ export default function UserLoginPage() {
 
           <div className="mt-8 pt-6 border-t border-gray-100 space-y-2 text-center">
             <p className="text-sm text-gray-400">
-              Admin?{' '}
-              <Link href="/admin/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">Admin Login</Link>
-            </p>
-            <p className="text-sm text-gray-400">
-              Staff?{' '}
-              <Link href="/staff/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">Staff Login</Link>
+              Admin or Staff?{' '}
+              <Link href="/admin/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">Admin / Staff Login</Link>
             </p>
           </div>
         </div>

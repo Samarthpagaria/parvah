@@ -24,7 +24,12 @@ export default function AdminLoginPage() {
     e.preventDefault()
     if (isLogin) {
       if (!formData.email || !formData.password) { setError('Please fill in all fields'); return }
-      window.location.href = '/admin/organizations'
+      // Role-based redirect simulation
+      if (formData.email.toLowerCase() === 'staff@gmail.com') {
+        window.location.href = '/staff/dashboard'
+      } else {
+        window.location.href = '/admin/organizations'
+      }
     } else {
       if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) { setError('Please fill in all fields'); return }
       if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return }
@@ -95,8 +100,8 @@ export default function AdminLoginPage() {
                 key={tab}
                 onClick={() => { setIsLogin(idx === 0); setError('') }}
                 className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${(isLogin ? idx === 0 : idx === 1)
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-400 hover:text-gray-600'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
                   }`}
               >
                 {tab}
@@ -167,9 +172,8 @@ export default function AdminLoginPage() {
               Not an admin?{' '}
               <Link href="/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">Citizen Login</Link>
             </p>
-            <p className="text-sm text-gray-400">
-              Staff member?{' '}
-              <Link href="/staff/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">Staff Login</Link>
+            <p className="text-xs text-gray-300 mt-2">
+              Staff members: use email <span className="font-medium text-gray-400">staff@gmail.com</span> to sign in
             </p>
           </div>
         </div>
