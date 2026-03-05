@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { issueAPI, authAPI } from '@/utils/backend_api_endpoints'
 
 type IssueStatus = 'open' | 'in-progress' | 'review' | 'resolved'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -19,17 +20,17 @@ interface Issue {
 }
 
 const statusConfig: Record<IssueStatus, { label: string; color: string; text: string; dot: string }> = {
-    'open':        { label: 'Open',         color: 'bg-[#F25A5A]/10', text: 'text-[#F25A5A]', dot: 'bg-[#F25A5A]' },
-    'in-progress': { label: 'In Progress',  color: 'bg-[#576CDB]/10', text: 'text-[#576CDB]', dot: 'bg-[#576CDB]' },
-    'review':      { label: 'Under Review', color: 'bg-amber-50',     text: 'text-amber-600', dot: 'bg-amber-400' },
-    'resolved':    { label: 'Resolved',     color: 'bg-[#088395]/10', text: 'text-[#088395]', dot: 'bg-[#088395]' },
+    'open': { label: 'Open', color: 'bg-[#F25A5A]/10', text: 'text-[#F25A5A]', dot: 'bg-[#F25A5A]' },
+    'in-progress': { label: 'In Progress', color: 'bg-[#576CDB]/10', text: 'text-[#576CDB]', dot: 'bg-[#576CDB]' },
+    'review': { label: 'Under Review', color: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-400' },
+    'resolved': { label: 'Resolved', color: 'bg-[#088395]/10', text: 'text-[#088395]', dot: 'bg-[#088395]' },
 }
 
 const priorityConfig: Record<IssuePriority, { label: string; color: string; text: string }> = {
-    low:      { label: 'Low',      color: 'bg-gray-100',        text: 'text-gray-500' },
-    medium:   { label: 'Medium',   color: 'bg-amber-50',        text: 'text-amber-600' },
-    high:     { label: 'High',     color: 'bg-[#F25A5A]/10',    text: 'text-[#F25A5A]' },
-    critical: { label: 'Critical', color: 'bg-red-100',         text: 'text-red-600' },
+    low: { label: 'Low', color: 'bg-gray-100', text: 'text-gray-500' },
+    medium: { label: 'Medium', color: 'bg-amber-50', text: 'text-amber-600' },
+    high: { label: 'High', color: 'bg-[#F25A5A]/10', text: 'text-[#F25A5A]' },
+    critical: { label: 'Critical', color: 'bg-red-100', text: 'text-red-600' },
 }
 
 const mockIssues: Issue[] = [
@@ -49,23 +50,59 @@ const recentActivity = [
 const activityTypeConfig = {
     resolve: { bg: 'bg-[#088395]/10', icon: 'text-[#088395]' },
     created: { bg: 'bg-[#576CDB]/10', icon: 'text-[#576CDB]' },
-    status:  { bg: 'bg-amber-50',     icon: 'text-amber-500' },
+    status: { bg: 'bg-amber-50', icon: 'text-amber-500' },
 }
 
 export default function UserDashboard() {
     const [filter, setFilter] = useState<'all' | IssueStatus>('all')
     const [showNotifications, setShowNotifications] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
+    const [issues, setIssues] = useState<Issue[]>([])
+    const [user, setUser] = useState<{ full_name: string } | null>(null)
+    const [loading, setLoading] = useState(true)
 
-    useEffect(() => { setTimeout(() => setIsMounted(true), 50) }, [])
+    useEffect(() => {
+        setIsMounted(true)
+        const fetchData = async () => {
+            try {
+                const [issuesData, userData] = await Promise.all([
+                    issueAPI.list(),
+                    authAPI.getMe()
+                ])
 
-    const filtered = filter === 'all' ? mockIssues : mockIssues.filter(i => i.status === filter)
+                const issuesList = issuesData.issues || []
+
+                // Map API issues to UI Issue type if needed
+                const mappedIssues = issuesList.map((apiIssue: any) => ({
+                    id: apiIssue.id,
+                    title: apiIssue.title,
+                    category: apiIssue.issue_categories?.name || apiIssue.category || 'General',
+                    priority: apiIssue.priority,
+                    status: apiIssue.status,
+                    location: apiIssue.address || (apiIssue.latitude ? `${apiIssue.latitude}, ${apiIssue.longitude}` : 'Remote'),
+                    submittedAt: new Date(apiIssue.created_at).toLocaleDateString(),
+                    lastUpdate: 'Recently',
+                    description: apiIssue.description
+                }))
+
+                setIssues(mappedIssues)
+                setUser(userData.user) // authAPI.getMe() returns { type, user }
+            } catch (err) {
+                console.error('Failed to fetch dashboard data:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [])
+
+    const filtered = filter === 'all' ? issues : issues.filter(i => i.status === filter)
 
     const stats = {
-        total: mockIssues.length,
-        open: mockIssues.filter(i => i.status === 'open').length,
-        inProgress: mockIssues.filter(i => i.status === 'in-progress' || i.status === 'review').length,
-        resolved: mockIssues.filter(i => i.status === 'resolved').length,
+        total: issues.length,
+        open: issues.filter(i => i.status === 'open').length,
+        inProgress: issues.filter(i => i.status === 'in-progress' || i.status === 'review').length,
+        resolved: issues.filter(i => i.status === 'resolved').length,
     }
 
     return (
@@ -130,9 +167,9 @@ export default function UserDashboard() {
                         {/* Profile */}
                         <Link href="/dashboard/profile" className="flex items-center gap-2.5 px-3 py-2 rounded-[12px] hover:bg-gray-100 transition-colors">
                             <div className="w-8 h-8 rounded-[10px] bg-[#201F47] flex items-center justify-center text-white font-normal text-[13px]">
-                                JD
+                                {user?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
                             </div>
-                            <span className="text-[14px] font-normal text-gray-600 hidden sm:block">John Doe</span>
+                            <span className="text-[14px] font-normal text-gray-600 hidden sm:block">{user?.full_name || 'Loading...'}</span>
                         </Link>
                     </div>
                 </div>
@@ -141,7 +178,7 @@ export default function UserDashboard() {
             <main className="max-w-6xl mx-auto px-6 py-8">
                 {/* Greeting */}
                 <div className={`mb-8 transition-all duration-500 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                    <h1 className="text-[28px] font-normal text-[#201F47] tracking-tight mb-1.5">Good morning, John 👋</h1>
+                    <h1 className="text-[28px] font-normal text-[#201F47] tracking-tight mb-1.5">Good morning, {user?.full_name?.split(' ')[0] || 'User'} 👋</h1>
                     <p className="text-[15px] font-normal text-gray-500">Here's an overview of your reported issues.</p>
                 </div>
 
@@ -149,9 +186,9 @@ export default function UserDashboard() {
                 <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 transition-all duration-500 delay-100 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                     {[
                         { label: 'Total Issues', value: stats.total, accent: 'bg-[#201F47]/5 text-[#201F47]', svgPath: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-                        { label: 'Open',         value: stats.open,       accent: 'bg-[#F25A5A]/8 text-[#F25A5A]',  svgPath: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
-                        { label: 'In Progress',  value: stats.inProgress, accent: 'bg-[#576CDB]/8 text-[#576CDB]', svgPath: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
-                        { label: 'Resolved',     value: stats.resolved,   accent: 'bg-[#088395]/8 text-[#088395]', svgPath: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+                        { label: 'Open', value: stats.open, accent: 'bg-[#F25A5A]/8 text-[#F25A5A]', svgPath: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
+                        { label: 'In Progress', value: stats.inProgress, accent: 'bg-[#576CDB]/8 text-[#576CDB]', svgPath: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
+                        { label: 'Resolved', value: stats.resolved, accent: 'bg-[#088395]/8 text-[#088395]', svgPath: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
                     ].map(s => (
                         <div key={s.label} className="bg-white rounded-[20px] border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow flex items-start justify-between group">
                             <div>
@@ -189,7 +226,7 @@ export default function UserDashboard() {
                                     className={`px-3.5 py-1.5 rounded-full text-[12px] font-normal transition-all ${filter === f
                                         ? 'bg-[#201F47] text-white'
                                         : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300 hover:text-[#201F47]'
-                                    }`}>
+                                        }`}>
                                     {f === 'all' ? 'All' : f === 'in-progress' ? 'In Progress' : f === 'review' ? 'Under Review' : f.charAt(0).toUpperCase() + f.slice(1)}
                                 </button>
                             ))}

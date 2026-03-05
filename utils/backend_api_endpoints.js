@@ -4,7 +4,7 @@
  * Each function corresponds to an Express backend endpoint.
  */
 
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000') + '/api';
 
 /**
  * Global API Fetch Helper
@@ -13,7 +13,7 @@ const BASE_URL = 'http://localhost:5000/api';
  */
 async function apiFetch(endpoint, options = {}) {
   const token = localStorage.getItem('parvah_token');
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),

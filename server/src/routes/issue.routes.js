@@ -1,10 +1,10 @@
 // routes/issues.routes.js
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const { requireAdmin } = require('../middleware/requireAdmin');
-const { requireRole } = require('../middleware/requireRole');
-const issuesController = require('../controllers/issues.controller');
+const authenticate = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
+const { requireRole } = require('../middleware/issue');
+const issuesController = require('../controllers/issue.controllers');
 
 // ─── Public User Routes ───────────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { issueAPI } from '@/utils/backend_api_endpoints'
 
 const categories = [
     'Road Maintenance',
@@ -266,19 +267,40 @@ export default function NewIssuePage() {
     })
     const [step, setStep] = useState<1 | 2 | 3>(1)
     const [submitted, setSubmitted] = useState(false)
-    const [newId] = useState(`ISS-00${Math.floor(Math.random() * 9) + 5}`)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
+    const [newId, setNewId] = useState('')
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+        setError('')
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // The form state for submission:
-        // { title, category, priority, description, latitude, longitude, contactPreference }
-        setSubmitted(true)
+        setLoading(true)
+        setError('')
+
+        try {
+            const res = await issueAPI.report({
+                title: form.title,
+                category: form.category,
+                priority: form.priority,
+                description: form.description,
+                location: `${form.latitude},${form.longitude}`, // Adjust based on backend expectation
+                latitude: form.latitude,
+                longitude: form.longitude
+            })
+
+            setNewId(res.issue?.id || res.id)
+            setSubmitted(true)
+        } catch (err: any) {
+            setError(err.message || 'Failed to submit report. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const canNext1 = !!form.title && !!form.category && !!form.priority
@@ -398,8 +420,8 @@ export default function NewIssuePage() {
                                             <button key={p.value} type="button"
                                                 onClick={() => setForm(f => ({ ...f, priority: p.value }))}
                                                 className={`py-3 px-3 rounded-xl text-xs font-semibold border-2 transition-all text-left ${form.priority === p.value
-                                                        ? `${p.color} border-current`
-                                                        : 'border-gray-100 text-gray-400 hover:border-gray-200 bg-white'
+                                                    ? `${p.color} border-current`
+                                                    : 'border-gray-100 text-gray-400 hover:border-gray-200 bg-white'
                                                     }`}>
                                                 <div className={`w-2 h-2 rounded-full mb-1.5 ${form.priority === p.value ? p.dot : 'bg-gray-300'}`} />
                                                 <p>{p.label}</p>
@@ -460,8 +482,8 @@ export default function NewIssuePage() {
                                             <button key={val} type="button"
                                                 onClick={() => setForm(f => ({ ...f, contactPreference: val }))}
                                                 className={`flex-1 py-2.5 text-xs font-semibold rounded-xl border-2 transition-all ${form.contactPreference === val
-                                                        ? 'border-teal-400 bg-teal-50 text-teal-700'
-                                                        : 'border-gray-100 text-gray-500 hover:border-gray-200 bg-white'
+                                                    ? 'border-teal-400 bg-teal-50 text-teal-700'
+                                                    : 'border-gray-100 text-gray-500 hover:border-gray-200 bg-white'
                                                     }`}>
                                                 {label}
                                             </button>
@@ -529,15 +551,18 @@ export default function NewIssuePage() {
                             </div>
 
                             <div className="flex gap-3">
-                                <button type="button" onClick={() => setStep(2)}
-                                    className="flex-1 py-3 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                                <button type="button" disabled={loading} onClick={() => setStep(2)}
+                                    className="flex-1 py-3 text-sm font-semibold text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50">
                                     ← Edit
                                 </button>
-                                <button type="submit"
-                                    className="flex-1 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-colors">
-                                    Submit Report
+                                <button type="submit" disabled={loading}
+                                    className="flex-1 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-colors disabled:opacity-70">
+                                    {loading ? 'Submitting...' : 'Submit Report'}
                                 </button>
                             </div>
+                            {error && (
+                                <p className="text-xs text-red-500 text-center mt-2">{error}</p>
+                            )}
                         </div>
                     )}
                 </form>

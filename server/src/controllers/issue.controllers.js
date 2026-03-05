@@ -153,7 +153,7 @@ exports.createIssue = async (req, res) => {
             return res.status(403).json({ error: 'Only public users can submit issues.' });
         }
 
-        const {
+        let {
             org_id,
             category_id,
             title,
@@ -165,18 +165,38 @@ exports.createIssue = async (req, res) => {
             is_public = true,
         } = req.body;
 
-        if (!org_id) return res.status(400).json({ error: 'org_id is required.' });
+        if (!org_id) {
+            const { data: orgs } = await supabaseAdmin.from('organizations').select('id').limit(1);
+            if (orgs && orgs.length > 0) {
+                org_id = orgs[0].id;
+            } else {
+                return res.status(400).json({ error: 'org_id is required and no default organization exists.' });
+            }
+        }
         if (!title || title.length < 5)
             return res.status(400).json({ error: 'Title must be at least 5 characters.' });
         if (!description || description.length < 10)
             return res.status(400).json({ error: 'Description must be at least 10 characters.' });
+
+        // Map category string to ID if needed
+        let resolvedCategoryId = null;
+        if (category_id) {
+            const { data: cat } = await supabaseAdmin.from('issue_categories').select('id').or(`id.eq.${category_id},name.eq.${category_id}`).single();
+            if (cat) {
+                resolvedCategoryId = cat.id;
+            } else if (category_id.length > 3) {
+                // If it looks like a name, create it
+                const { data: newCat } = await supabaseAdmin.from('issue_categories').insert({ name: category_id }).select().single();
+                if (newCat) resolvedCategoryId = newCat.id;
+            }
+        }
 
         const { data: issue, error } = await supabaseAdmin
             .from('issues')
             .insert({
                 org_id,
                 reported_by: userId,
-                category_id: category_id || null,
+                category_id: resolvedCategoryId,
                 title,
                 description,
                 priority,
