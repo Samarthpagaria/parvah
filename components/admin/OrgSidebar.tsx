@@ -62,8 +62,15 @@ export default function OrgSidebar({ orgId, orgName }: OrgSidebarProps) {
 
     return (
         <aside className="w-64 min-h-screen bg-white border-r border-gray-100 flex flex-col shadow-sm">
+            {/* Logo */}
+            <div className="px-5 pt-5 pb-4 border-b border-gray-50">
+                <Link href="/admin/organizations" className="flex items-center gap-0.5 select-none group w-fit">
+                    <span className="text-[17px] font-normal tracking-[-0.04em] text-[#201F47]">par</span><span className="text-[17px] font-normal tracking-[-0.04em] text-[#088395]">vah</span><span className="w-1.5 h-1.5 rounded-full bg-[#088395] mb-0.5 ml-0.5 self-end shrink-0 group-hover:scale-125 transition-transform" />
+                </Link>
+            </div>
+
             {/* Org Header */}
-            <div className="px-5 py-5 border-b border-gray-100">
+            <div className="px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center shadow-sm">
                         <span className="text-white font-bold text-sm">{orgName.charAt(0)}</span>

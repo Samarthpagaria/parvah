@@ -37,16 +37,16 @@ export function ParallaxVision() {
 
   const sections = [
     {
-      title: "A Global Network, Rooted in Your Village.",
-      content: "Healthcare should not be defined by your PIN code. While the world makes massive leaps in medical technology, rural communities are often left navigating the gap between high-tech urban centers and local accessibility. SAHARA is designed to bridge this divide by bringing world-class health intelligence directly to the palm of your hand. By syncing global medical standards with the unique needs of rural India, we ensure that every family has a reliable, instant, and expert companion for their wellness journey."
+      title: "Civic Accountability, Built Into Every Step.",
+      content: "Accountability shouldn't require persistence. In most cities, a citizen who files a complaint has no idea what happens next. There is no confirmation, no timeline, and no name to hold responsible. Parvah changes this by creating a complete, auditable record of every action taken on every issue — from the moment it is filed to the moment it is resolved. Every status change, note, and assignment is timestamped and attributed. Municipalities become transparent by default."
     },
     {
-      title: "Intelligence That Speaks Your Language.",
-      content: "True healthcare empowerment begins with understanding. We’ve removed the friction of complex app stores and high-spec hardware requirements, ensuring that SAHARA works seamlessly on any device. By utilizing advanced natural language processing, we provide accurate health guidance in over 20 regional dialects, ensuring that your symptoms are understood and your concerns are addressed in the language you speak at home."
+      title: "From Complaint to Resolution. In Hours, Not Weeks.",
+      content: "The gap between a pot hole being reported and a pothole being repaired used to be measured in months. Parvah compresses that timeline by making it impossible to lose an issue in a pile of emails or a missed phone call. The moment a citizen files a report, it enters a structured workflow. Admins triage, assign, and track. Staff receive tasks directly. Citizens are notified at every step. Nothing falls through the cracks."
     },
     {
-      title: "Building a Safer, Healthier Tomorrow.",
-      content: "Trust is the foundation of every consultation. SAHARA operates as a 24/7 diagnostic ally, providing free and instant clarity when you need it most. Our mission is to turn every smartphone into a gateway for professional-grade health support, reducing the burden on local clinics. We are mapping a future where \"distance\" is no longer a barrier to a healthy life."
+      title: "One Platform. Every Municipality. Real Scale.",
+      content: "Parvah is not a single city solution. It is designed to power civic issue management across multiple organizations, departments, and jurisdictions under one unified platform. Water supply, road maintenance, cleanliness, lighting — each department gets its own issue pipeline, its own staff, and its own categories. Administrators have a bird's-eye view of everything. Scale without chaos. Governance without bureaucracy."
     }
   ];
 

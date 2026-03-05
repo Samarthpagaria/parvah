@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { UserPlus, MessageSquareText, ShieldPlus } from "lucide-react";
+import { FilePlus, UserCheck, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { AnimatedBeam } from "@/components/sahara/ui/animated-beam";
@@ -31,7 +31,7 @@ export function HowItWorks() {
             <TranslatedText>How It Works</TranslatedText>
           </h2>
           <p className="mt-6 text-neutral-500 font-medium max-w-2xl mx-auto text-lg">
-            <TranslatedText>A simple, three-step process designed for the heart of India.</TranslatedText>
+            <TranslatedText>Three clear steps from complaint filed to issue closed.</TranslatedText>
           </p>
         </div>
 
@@ -96,20 +96,20 @@ export function HowItWorks() {
 const steps = [
   {
     number: "01",
-    title: "Register in Seconds",
-    description: "Use your mobile number. No email needed. Select your language and you're ready.",
-    icon: <UserPlus className="h-8 w-8" />,
+    title: "Citizen Files a Report",
+    description: "Spot a civic problem. Open Parvah, describe the issue, drop a pin on the map, set the category and priority — done in under a minute.",
+    icon: <FilePlus className="h-8 w-8" />,
   },
   {
     number: "02",
-    title: "Describe Your Symptoms",
-    description: "Speak or type how you feel in your own language. SAHARA listens and understands.",
-    icon: <MessageSquareText className="h-8 w-8" />,
+    title: "Admin Triages & Assigns",
+    description: "The municipality reviews the report, validates it, and assigns it to the right department staff member with a single click.",
+    icon: <UserCheck className="h-8 w-8" />,
   },
   {
     number: "03",
-    title: "Get Instant Guidance",
-    description: "AI gives you clear advice, identifies medicines, and connects you to a doctor.",
-    icon: <ShieldPlus className="h-8 w-8" />,
+    title: "Staff Resolves & Closes",
+    description: "Field staff head to the site, add progress notes, and mark it resolved. The citizen is notified and the issue is closed with a full audit trail.",
+    icon: <CheckCircle className="h-8 w-8" />,
   },
 ];

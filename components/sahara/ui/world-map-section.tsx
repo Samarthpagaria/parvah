@@ -46,7 +46,7 @@ export function WorldMapSection() {
         {/* Minimalist Small Footer */}
         <div className="pt-6 pb-2 border-t border-neutral-200/50 flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
           <div className="order-2 md:order-1">
-             <span className="text-lg font-black text-neutral-900 tracking-tighter uppercase italic font-serif">Sahara</span>
+             <span className="text-lg font-black text-neutral-900 tracking-tighter uppercase italic font-serif">Parvah</span>
           </div>
 
           <div className="flex items-center gap-5 order-1 md:order-2 opacity-60 hover:opacity-100 transition-opacity">
@@ -62,7 +62,7 @@ export function WorldMapSection() {
           </div>
 
           <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-[0.2em] order-3">
-             &copy; 2026 Infrastructure Layer
+             &copy; 2025 Parvah. Civic Issue Tracking & Resolution.
           </div>
         </div>
       </div>

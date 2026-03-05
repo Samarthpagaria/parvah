@@ -17,36 +17,37 @@ export default function Home() {
       <main className="min-h-screen bg-white sahara-landing-root">
       <HeroSection
         badge={{
-          text: "AI-Powered · Voice-First · Offline Ready",
+          text: "Citizen-First · Transparent · Real-Time",
           action: {
-            text: "Explore Technology",
-            href: "#",
+            text: "See how it works",
+            href: "#how-it-works",
           },
         }}
-        hindiTagline="सही समय पर, सही इलाज अब हर गांव में"
+        hindiTagline="अपनी समस्या दर्ज करें, समाधान पाएं — अभी"
         title={
           <>
-            <TranslatedText>Timely</TranslatedText> <span className="text-orange-600 italic font-serif drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"><TranslatedText>Access</TranslatedText></span> <TranslatedText>to the Right</TranslatedText> <span className="text-orange-600 italic font-serif drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"><TranslatedText>Healthcare</TranslatedText></span>.
+            <TranslatedText>Your City.</TranslatedText> <span className="text-orange-600 italic font-serif drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"><TranslatedText>Your Voice.</TranslatedText></span> <TranslatedText>Real</TranslatedText> <span className="text-orange-600 italic font-serif drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"><TranslatedText>Resolution.</TranslatedText></span>
           </>
         }
         description={
           <>
-            <TranslatedText>SAHARA bridges the gap between rural communities and quality healthcare through</TranslatedText>{" "}
-            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]">AI</span>,{" "}
-            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]">voice</span>, <TranslatedText>and your</TranslatedText>{" "}
-            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]"><TranslatedText>own language</TranslatedText></span>.
-            <TranslatedText>No internet? No problem.</TranslatedText>
+            <TranslatedText>Parvah bridges citizens and municipal bodies through</TranslatedText>{" "}
+            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]">transparent</span>,{" "}
+            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]">trackable</span>, <TranslatedText>and</TranslatedText>{" "}
+            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]"><TranslatedText>accountable</TranslatedText></span>{" "}
+            <TranslatedText>civic issue resolution.</TranslatedText>
+            <TranslatedText> No more ignored complaints.</TranslatedText>
           </>
         }
         actions={[
           {
-            text: "Get Started Free",
+            text: "Report an Issue",
             href: "/login",
             variant: "default",
           },
           {
-            text: "See How It Works",
-            href: "#",
+            text: "Admin Portal",
+            href: "/admin/login",
             variant: "outline",
             icon: <PlayCircle className="h-5 w-5" />,
           },

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background rounded square -->
+  <rect width="32" height="32" rx="8" fill="#201F47"/>
+  <!-- Lightning bolt / parvah mark -->
+  <path d="M19 5L10 17h7l-2 10 11-13h-7l2-9z" fill="#088395" stroke="none"/>
+</svg>

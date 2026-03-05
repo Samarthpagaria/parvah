@@ -3,7 +3,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Users, HeartPulse, Baby, HardHat, ArrowUpRight } from "lucide-react";
+import { Users, Building2, HardHat, Landmark, ArrowUpRight } from "lucide-react";
 import { TranslatedText } from "@/components/sahara/ui/translated-text";
 
 const BeneficiaryCard = ({
@@ -68,51 +68,51 @@ export function BeneficiariesSection() {
               <TranslatedText>Who We Serve</TranslatedText>
             </div>
             <h2 className="mb-6 text-3xl font-black tracking-tight text-neutral-900 sm:text-4xl lg:text-5xl leading-[1.2]">
-              <TranslatedText>Built for</TranslatedText> <span className="text-orange-600 italic font-serif"><TranslatedText>Every Indian</TranslatedText></span>, <br className="hidden md:block" />
+              <TranslatedText>Built for</TranslatedText> <span className="text-orange-600 italic font-serif"><TranslatedText>Every Stakeholder</TranslatedText></span>, <br className="hidden md:block" />
               <span className="relative inline-block mt-1">
-                <TranslatedText>Forgotten</TranslatedText>
+                <TranslatedText>Driving</TranslatedText>
                 <div className="absolute -bottom-1 left-0 w-full h-1 bg-gradient-to-r from-orange-600/40 to-transparent rounded-full" />
-              </span> <TranslatedText>by Healthcare</TranslatedText>
+              </span> <TranslatedText>Civic Change</TranslatedText>
             </h2>
             <p className="mx-auto max-w-xl text-base md:text-lg font-medium text-neutral-500 leading-relaxed opacity-80">
-              <TranslatedText>Sahara is designed to reach the last mile, ensuring no one is left behind in India's healthcare revolution.</TranslatedText>
+              <TranslatedText>Parvah serves citizens, administrators, and municipal staff — creating a closed loop of accountability from complaint to resolution.</TranslatedText>
             </p>
           </motion.div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-12 md:grid-rows-2 lg:gap-8">
-          {/* Rural Families - Large Card */}
+          {/* Citizens - Large Card */}
           <BeneficiaryCard
-            title="Rural Families"
-            description="Remote villages with no nearby clinic. Sahara brings quality guidance to their doorstep."
+            title="Citizens"
+            description="Residents who need a direct, reliable channel to report civic issues and track progress — without calling helplines or visiting offices."
             icon={Users}
             className="md:col-span-8 md:row-span-1"
             delay={0.1}
           />
 
-          {/* Elderly Patients */}
+          {/* Municipal Administrators */}
           <BeneficiaryCard
-            title="Elderly Patients"
-            description="Limited mobility, need voice-based help."
-            icon={HeartPulse}
+            title="Municipal Admins"
+            description="Administrators who need full visibility and control over issue pipelines across their organizations."
+            icon={Building2}
             className="md:col-span-4 md:row-span-1"
             delay={0.2}
           />
 
-          {/* Women & Children */}
+          {/* Field Staff */}
           <BeneficiaryCard
-            title="Women & Children"
-            description="Maternal care, child health guidance for a healthier next generation."
-            icon={Baby}
+            title="Field Staff"
+            description="On-ground workers who receive clear assignments, add progress notes, and close issues with a full activity log."
+            icon={HardHat}
             className="md:col-span-4 md:row-span-1"
             delay={0.3}
           />
 
-          {/* ASHA / NGO Workers */}
+          {/* Government & NGOs */}
           <BeneficiaryCard
-            title="ASHA / NGO Workers"
-            description="Tools to manage community health. Empowering the backbone of rural healthcare."
-            icon={HardHat}
+            title="Government & Civic Bodies"
+            description="Municipalities and civic bodies that need transparent, auditable, role-based issue tracking to demonstrate accountability to the public."
+            icon={Landmark}
             className="md:col-span-8 md:row-span-1"
             delay={0.4}
           />

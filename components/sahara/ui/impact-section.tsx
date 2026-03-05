@@ -74,10 +74,10 @@ export function ImpactSection() {
               <TranslatedText>Measurable Change</TranslatedText>
             </div>
             <h2 className="text-3xl font-bold text-neutral-900 tracking-tight mb-4">
-              <TranslatedText>What</TranslatedText> <span className="text-orange-600 italic font-serif">SAHARA</span> <TranslatedText>Changes</TranslatedText>
+              <TranslatedText>What</TranslatedText> <span className="text-orange-600 italic font-serif">Parvah</span> <TranslatedText>Changes</TranslatedText>
             </h2>
             <p className="text-neutral-500 font-medium max-w-lg mx-auto text-sm opacity-80">
-              <TranslatedText>Precise metrics from our last-mile healthcare deployments.</TranslatedText>
+              <TranslatedText>Measurable impact from transparent civic issue management.</TranslatedText>
             </p>
           </motion.div>
         </div>
@@ -88,14 +88,14 @@ export function ImpactSection() {
             <ImpactCard
               cardRef={card1Ref}
               title="THE SHIFT"
-              value="Before 4 Days. Now 4 Hours."
-              description="Rural patients used to wait days for basic health guidance."
+              value="Days to Hours. Complaints Resolved."
+              description="Issues that used to sit ignored for weeks now get assigned and resolved within hours."
             />
             <ImpactCard
               cardRef={card3Ref}
               title="THE BARRIER"
-              value="No Reading. Just Speak."
-              description="Voice AI works for everyone, literate or not."
+              value="No Offices. No Calls. Just Report."
+              description="Citizens file a civic complaint in under 60 seconds, from any device."
             />
           </div>
 
@@ -117,15 +117,15 @@ export function ImpactSection() {
           <div className="flex flex-col gap-8 w-full lg:w-1/3 items-center lg:items-start order-3 lg:order-3">
             <ImpactCard
               cardRef={card2Ref}
-              title="THE FIX"
-              value="Wrong Medicines: Solved"
-              description="Scanner prevents dangerous mistakes before they happen."
+              title="THE ACCOUNTABILITY"
+              value="Full Audit Trail. Always."
+              description="Every status change is logged — who changed it, when, and from where."
             />
             <ImpactCard
               cardRef={card4Ref}
-              title="THE SAFETY"
-              value="108 in One Tap. Always."
-              description="Emergency detection that never sleeps."
+              title="THE ASSIGNMENT"
+              value="Right Staff. Right Issue. Every Time."
+              description="Role-based routing ensures issues reach the right department instantly."
             />
           </div>
         </div>
