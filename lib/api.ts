@@ -106,7 +106,14 @@ export const inviteAPI = {
 };
 
 export const issueAPI = {
-    list: () => apiFetch('/issues'),
+    list: (filters: any = {}) => {
+        const params = new URLSearchParams()
+        Object.keys(filters).forEach(key => {
+            if (filters[key]) params.append(key, filters[key])
+        })
+        const qs = params.toString()
+        return apiFetch(`/issues${qs ? `?${qs}` : ''}`)
+    },
     report: (issueData: any) => apiFetch('/issues', {
         method: 'POST',
         body: JSON.stringify(issueData),
@@ -126,7 +133,21 @@ export const issueAPI = {
 };
 
 export const analyticsAPI = {
-    getOverview: (orgId: string) => apiFetch(`/analytics/overview/${orgId}`),
-    getTrends: (orgId: string) => apiFetch(`/analytics/trends/${orgId}`),
-    getByCategory: (orgId: string) => apiFetch(`/analytics/by-category/${orgId}`),
+    getOverview: (orgId: string) => apiFetch<any>(`/analytics/overview/${orgId}`),
+    getTrends: (orgId: string, period = 'daily') => apiFetch<any>(`/analytics/trends/${orgId}?period=${period}`),
+    getByCategory: (orgId: string) => apiFetch<any>(`/analytics/by-category/${orgId}`),
+    getByStatus: (orgId: string) => apiFetch<any>(`/analytics/by-status/${orgId}`),
+    getStaffPerformance: (orgId: string) => apiFetch<any>(`/analytics/staff-performance/${orgId}`),
+    getResolutionTime: (orgId: string) => apiFetch<any>(`/analytics/resolution-time/${orgId}`),
+};
+
+export const categoryAPI = {
+    list: (orgId: string) => apiFetch<any>(`/categories/${orgId}`),
+    create: (orgId: string, categoryData: any) => apiFetch<any>(`/categories/${orgId}`, {
+        method: 'POST',
+        body: JSON.stringify(categoryData),
+    }),
+    delete: (orgId: string, categoryId: string) => apiFetch<any>(`/categories/${orgId}/${categoryId}`, {
+        method: 'DELETE',
+    }),
 };

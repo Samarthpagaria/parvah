@@ -9,6 +9,7 @@ interface User {
     avatar_url?: string;
     phone?: string;
     is_super_admin?: boolean;
+    address?: string;
 }
 
 interface AuthState {

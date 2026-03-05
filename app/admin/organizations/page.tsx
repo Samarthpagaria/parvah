@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { orgAPI } from '@/lib/api'
+import { orgAPI, authAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 
 const mockOrgs = [
@@ -70,9 +70,15 @@ export default function OrganizationsPage() {
         (o.industry && o.industry.toLowerCase().includes(search.toLowerCase()))
     )
 
-    const handleLogout = () => {
-        clearAuth()
-        window.location.href = '/admin/login'
+    const handleLogout = async () => {
+        try {
+            await authAPI.logout()
+        } catch (err) {
+            console.error('Logout error:', err)
+        } finally {
+            clearAuth()
+            window.location.href = '/admin/login'
+        }
     }
 
     return (

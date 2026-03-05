@@ -119,7 +119,7 @@ const listInvites = async (req, res) => {
         expires_at,
         created_at,
         accepted_at,
-        invited_by_user:admin_users(id, full_name, email)
+        invited_by_user:admin_users!admin_invitations_invited_by_fkey(id, full_name, email)
       `,
       )
       .eq("org_id", orgId)

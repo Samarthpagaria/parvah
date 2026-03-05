@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useAuthStore } from '@/store/authStore'
+import { authAPI } from '@/lib/api'
 
 type IssueStatus = 'open' | 'in-progress' | 'review' | 'resolved'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -89,6 +91,18 @@ const recentActivity = [
 export default function UserDashboard() {
     const [filter, setFilter] = useState<'all' | IssueStatus>('all')
     const [showNotifications, setShowNotifications] = useState(false)
+    const { user, clearAuth } = useAuthStore()
+
+    const handleLogout = async () => {
+        try {
+            await authAPI.logout()
+        } catch (err) {
+            console.error('Logout error:', err)
+        } finally {
+            clearAuth()
+            window.location.href = '/login'
+        }
+    }
 
     const filtered = filter === 'all' ? mockIssues : mockIssues.filter(i => i.status === filter)
 
@@ -159,16 +173,39 @@ export default function UserDashboard() {
                         </div>
 
                         {/* Profile */}
-                        <Link href="/dashboard/profile"
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                                JD
+                        <div className="relative group/profile">
+                            <button className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    {user?.full_name?.charAt(0) || 'U'}
+                                </div>
+                                <span className="text-sm font-semibold text-gray-700 hidden sm:block">{user?.full_name || 'User'}</span>
+                                <svg className="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {/* Profile Dropdown */}
+                            <div className="absolute right-0 top-full pt-1 opacity-0 invisible group-hover/profile:opacity-100 group-hover/profile:visible transition-all duration-200">
+                                <div className="bg-white rounded-xl border border-gray-100 shadow-xl w-48 py-2 overflow-hidden">
+                                    <Link href="/dashboard/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        My Profile
+                                    </Link>
+                                    <hr className="my-1 border-gray-50" />
+                                    <button
+                                        onClick={handleLogout}
+                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        Logout
+                                    </button>
+                                </div>
                             </div>
-                            <span className="text-sm font-semibold text-gray-700 hidden sm:block">John Doe</span>
-                            <svg className="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </Link>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -176,7 +213,7 @@ export default function UserDashboard() {
             <main className="max-w-6xl mx-auto px-6 py-8">
                 {/* Greeting */}
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">Good morning, John 👋</h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Good morning, {user?.full_name?.split(' ')[0] || 'User'} 👋</h1>
                     <p className="text-sm text-gray-500 mt-0.5">Here's an overview of all your reported issues.</p>
                 </div>
 
@@ -214,8 +251,8 @@ export default function UserDashboard() {
                             {(['all', 'open', 'in-progress', 'review', 'resolved'] as const).map(f => (
                                 <button key={f} onClick={() => setFilter(f)}
                                     className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${filter === f
-                                            ? 'bg-gray-900 text-white'
-                                            : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'
+                                        ? 'bg-gray-900 text-white'
+                                        : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'
                                         }`}>
                                     {f === 'all' ? 'All' : f === 'in-progress' ? 'In Progress' : f === 'review' ? 'Under Review' : f.charAt(0).toUpperCase() + f.slice(1)}
                                 </button>

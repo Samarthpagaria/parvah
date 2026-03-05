@@ -1,8 +1,24 @@
 'use client'
 
 import Link from 'next/link'
+import { useAuthStore } from '@/store/authStore'
+import { authAPI } from '@/lib/api'
+import { useRouter } from 'next/navigation'
 
 export default function ProfilePage() {
+    const { user, clearAuth } = useAuthStore()
+    const router = useRouter()
+
+    const handleLogout = async () => {
+        try {
+            await authAPI.logout()
+        } catch (err) {
+            console.error('Logout error:', err)
+        } finally {
+            clearAuth()
+            router.push('/login')
+        }
+    }
     return (
         <div className="min-h-screen bg-gray-50">
             <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
@@ -26,10 +42,12 @@ export default function ProfilePage() {
 
                 {/* Avatar card */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex items-center gap-5">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-sm">JD</div>
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-sm">
+                        {user?.full_name?.charAt(0) || 'U'}
+                    </div>
                     <div>
-                        <p className="font-bold text-gray-900">John Doe</p>
-                        <p className="text-sm text-gray-500">john.doe@example.com</p>
+                        <p className="font-bold text-gray-900">{user?.full_name || 'User'}</p>
+                        <p className="text-sm text-gray-500">{user?.email}</p>
                         <span className="inline-block mt-1 text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">Citizen</span>
                     </div>
                 </div>
@@ -43,25 +61,25 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Full Name</label>
-                                <input defaultValue="John Doe" className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all" />
+                                <input defaultValue={user?.full_name || ''} className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all" />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">Phone</label>
-                                <input defaultValue="+91 98765 43210" className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all" />
+                                <input defaultValue={user?.phone || ''} className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all" />
                             </div>
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email Address</label>
-                            <input type="email" defaultValue="john.doe@example.com" className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all" />
+                            <input type="email" defaultValue={user?.email || ''} readOnly className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-400 outline-none cursor-not-allowed" />
                         </div>
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 mb-1.5">Address</label>
-                            <input defaultValue="12B, MG Road, Koramangala, Bengaluru" className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all" />
+                            <input defaultValue={user?.address || ''} className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all" />
                         </div>
                     </div>
                     <div className="px-5 py-4 bg-gray-50/50 flex justify-between items-center">
                         <button className="text-sm font-semibold text-red-500 hover:text-red-600 transition-colors"
-                            onClick={() => window.location.href = '/login'}>
+                            onClick={handleLogout}>
                             Log Out
                         </button>
                         <button className="px-5 py-2.5 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-colors">

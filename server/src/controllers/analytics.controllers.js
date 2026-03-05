@@ -327,7 +327,7 @@ exports.getStaffPerformance = async (req, res) => {
         // Get all staff members in this org
         const { data: staffMembers, error: staffError } = await supabaseAdmin
             .from('org_admin_members')
-            .select('admin_user_id, admin_users(id, full_name, email, avatar_url)')
+            .select('admin_user_id, admin_users!org_admin_members_admin_user_id_fkey(id, full_name, email, avatar_url)')
             .eq('org_id', orgId)
             .eq('role', 'staff')
             .eq('is_active', true);

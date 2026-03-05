@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, use } from 'react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import KanbanColumn from '@/components/kanban/KanbanColumn'
 import KanbanCard from '@/components/kanban/KanbanCard'
@@ -21,7 +21,8 @@ interface Issue {
   location?: string
 }
 
-export default function KanbanPage({ params }: { params: { orgId: string } }) {
+export default function KanbanPage({ params }: { params: Promise<{ orgId: string }> }) {
+  const { orgId } = use(params)
   const [issues, setIssues] = useState<{ [key: string]: Issue[] }>({
     open: [
       {

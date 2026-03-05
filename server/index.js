@@ -34,8 +34,9 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/organizations", require("./src/routes/org.routes"));
 app.use("/api/invitations", require("./src/routes/invitations.routes"));
-// app.use('/api/issues', require('./src/routes/issues.routes'))
-// app.use('/api/analytics', require('./src/routes/analytics.routes'))
+app.use("/api/issues", require("./src/routes/issue.routes"));
+app.use("/api/analytics", require("./src/routes/analytics.routes"));
+app.use("/api/categories", require("./src/routes/category.routes"));
 
 // ── 404 Handler ────────────────────────────────────────────
 app.use((req, res) => {

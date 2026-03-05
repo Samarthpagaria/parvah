@@ -39,7 +39,7 @@ const listOrganizations = async (req, res) => {
       .select(
         `
         *,
-        owner:admin_users(id, full_name, email)
+        owner:admin_users!organizations_owner_admin_id_fkey(id, full_name, email)
       `,
       )
       .order("created_at", { ascending: false });
@@ -173,12 +173,12 @@ const getOrganization = async (req, res) => {
       .select(
         `
         *,
-        owner:admin_users(id, full_name, email),
+        owner:admin_users!organizations_owner_admin_id_fkey(id, full_name, email),
         members:org_admin_members(
           id,
           role,
           joined_at,
-          admin_user:admin_users(id, full_name, email, avatar_url)
+          admin_user:admin_users!org_admin_members_admin_user_id_fkey(id, full_name, email, avatar_url)
         )
       `,
       )
@@ -287,7 +287,7 @@ const listOrgMembers = async (req, res) => {
         role,
         is_active,
         joined_at,
-        admin_user:admin_users(id, full_name, email, avatar_url, last_login_at)
+        admin_user:admin_users!org_admin_members_admin_user_id_fkey(id, full_name, email, avatar_url, last_login_at)
       `,
       )
       .eq("org_id", orgId)

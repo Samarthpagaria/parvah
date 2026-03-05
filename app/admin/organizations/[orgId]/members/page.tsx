@@ -1,16 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
 import { orgAPI, inviteAPI } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-
-const mockOrgs: Record<string, string> = {
-    'org-1': 'City Municipality',
-    'org-2': 'Water Department',
-    'org-3': 'Waste Management',
-}
 
 type Role = 'owner' | 'edit' | 'read' | 'staff'
 
@@ -24,14 +18,6 @@ interface Member {
     avatar: string
 }
 
-const initialMembers: Member[] = [
-    { id: '1', name: 'Super Admin', email: 'admin@parvah.gov', role: 'owner', joinedAt: 'Jan 2024', status: 'active', avatar: 'SA' },
-    { id: '2', name: 'Sarah Wilson', email: 'sarah@city.gov', role: 'edit', joinedAt: 'Feb 2024', status: 'active', avatar: 'SW' },
-    { id: '3', name: 'Tom Davis', email: 'tom@city.gov', role: 'staff', joinedAt: 'Mar 2024', status: 'active', avatar: 'TD' },
-    { id: '4', name: 'Priya Mehta', email: 'priya@city.gov', role: 'staff', joinedAt: 'Mar 2024', status: 'active', avatar: 'PM' },
-    { id: '5', name: 'Raj Kumar', email: 'raj@city.gov', role: 'read', joinedAt: 'Mar 2024', status: 'invited', avatar: 'RK' },
-]
-
 const roleConfig: Record<Role, { label: string; bg: string; text: string; desc: string }> = {
     owner: { label: 'Owner', bg: 'bg-purple-50', text: 'text-purple-700', desc: 'Full access' },
     edit: { label: 'Edit', bg: 'bg-teal-50', text: 'text-teal-700', desc: 'Can manage issues & comments' },
@@ -39,8 +25,8 @@ const roleConfig: Record<Role, { label: string; bg: string; text: string; desc: 
     staff: { label: 'Staff', bg: 'bg-orange-50', text: 'text-orange-700', desc: 'Handles assigned issues' },
 }
 
-export default function MembersPage({ params }: { params: { orgId: string } }) {
-    const { orgId } = params
+export default function MembersPage({ params }: { params: Promise<{ orgId: string }> }) {
+    const { orgId } = use(params)
     const [orgName, setOrgName] = useState('Loading...')
     const [members, setMembers] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)

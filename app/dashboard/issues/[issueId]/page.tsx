@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, use } from 'react'
 import Link from 'next/link'
 
 type IssueStatus = 'open' | 'in-progress' | 'review' | 'resolved'
@@ -66,8 +66,8 @@ const defaultIssue = {
     ],
 }
 
-export default function IssueDetailPage({ params }: { params: { issueId: string } }) {
-    const { issueId } = params
+export default function IssueDetailPage({ params }: { params: Promise<{ issueId: string }> }) {
+    const { issueId } = use(params)
     const issue = mockIssueData[issueId] ?? { ...defaultIssue, id: issueId }
     const s = statusConfig[issue.status]
 
@@ -187,8 +187,8 @@ export default function IssueDetailPage({ params }: { params: { issueId: string 
                                 {issue.activity.map((a, i) => (
                                     <div key={i} className="flex gap-3">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${a.type === 'resolve' ? 'bg-teal-100' :
-                                                a.type === 'created' ? 'bg-gray-100' :
-                                                    a.type === 'note' ? 'bg-blue-100' : 'bg-orange-100'
+                                            a.type === 'created' ? 'bg-gray-100' :
+                                                a.type === 'note' ? 'bg-blue-100' : 'bg-orange-100'
                                             }`}>
                                             {a.type === 'note' ? (
                                                 <span className="text-blue-600 text-xs font-bold">{a.actor.charAt(0)}</span>
@@ -261,7 +261,7 @@ export default function IssueDetailPage({ params }: { params: { issueId: string 
                                         <div key={status} className="flex gap-3">
                                             <div className="flex flex-col items-center">
                                                 <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 z-10 border-2 transition-all ${isDone ? 'bg-teal-500 border-teal-500' :
-                                                        isCurrent ? `${sc.bg} border-current` : 'bg-white border-gray-200'
+                                                    isCurrent ? `${sc.bg} border-current` : 'bg-white border-gray-200'
                                                     }`}>
                                                     {isDone ? (
                                                         <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
