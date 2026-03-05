@@ -36,6 +36,7 @@ app.use("/api/organizations", require("./src/routes/org.routes"));
 app.use("/api/invitations", require("./src/routes/invitations.routes"));
 // app.use('/api/issues', require('./src/routes/issues.routes'))
 // app.use('/api/analytics', require('./src/routes/analytics.routes'))
+app.use("/api/notifications", require("./src/routes/notifications.routes"));
 
 // ── 404 Handler ────────────────────────────────────────────
 app.use((req, res) => {
