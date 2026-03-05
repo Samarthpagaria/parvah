@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
+import { orgAPI, inviteAPI } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 
 const mockOrgs: Record<string, string> = {
     'org-1': 'City Municipality',
@@ -39,32 +41,59 @@ const roleConfig: Record<Role, { label: string; bg: string; text: string; desc: 
 
 export default function MembersPage({ params }: { params: { orgId: string } }) {
     const { orgId } = params
-    const orgName = mockOrgs[orgId] ?? 'Organization'
-    const [members, setMembers] = useState<Member[]>(initialMembers)
+    const [orgName, setOrgName] = useState('Loading...')
+    const [members, setMembers] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState('')
+
     const [showInvite, setShowInvite] = useState(false)
     const [inviteEmail, setInviteEmail] = useState('')
-    const [inviteRole, setInviteRole] = useState<Role>('read')
+    const [inviteRole, setInviteRole] = useState<string>('read')
     const [inviteSent, setInviteSent] = useState(false)
+    const [isInviting, setIsInviting] = useState(false)
 
-    const handleInvite = (e: React.FormEvent) => {
-        e.preventDefault()
-        const newMember: Member = {
-            id: Date.now().toString(),
-            name: inviteEmail.split('@')[0],
-            email: inviteEmail,
-            role: inviteRole,
-            joinedAt: 'Now',
-            status: 'invited',
-            avatar: inviteEmail.charAt(0).toUpperCase() + (inviteEmail.charAt(1) ?? '').toUpperCase(),
+    const { user } = useAuthStore()
+
+    useEffect(() => {
+        const fetchOrgAndMembers = async () => {
+            try {
+                const orgData: any = await orgAPI.getDetails(orgId)
+                setOrgName(orgData.organization.name)
+
+                const membersData: any = await orgAPI.listMembers(orgId)
+                setMembers(membersData.members || [])
+            } catch (err) {
+                console.error('Failed to fetch data:', err)
+            } finally {
+                setIsLoading(false)
+            }
         }
-        setMembers(prev => [...prev, newMember])
-        setInviteSent(true)
-        setTimeout(() => {
-            setShowInvite(false)
-            setInviteEmail('')
-            setInviteRole('read')
-            setInviteSent(false)
-        }, 1500)
+        fetchOrgAndMembers()
+    }, [orgId])
+
+    const handleInvite = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setIsInviting(true)
+        setError('')
+
+        try {
+            await inviteAPI.send(orgId, inviteEmail, inviteRole)
+            setInviteSent(true)
+
+            // Refresh members list (optional, might not show invited yet depending on backend)
+            // But let's assume it adds to the list
+
+            setTimeout(() => {
+                setShowInvite(false)
+                setInviteEmail('')
+                setInviteRole('read')
+                setInviteSent(false)
+            }, 1500)
+        } catch (err: any) {
+            setError(err.message || 'Failed to send invitation')
+        } finally {
+            setIsInviting(false)
+        }
     }
 
     return (
@@ -120,24 +149,31 @@ export default function MembersPage({ params }: { params: { orgId: string } }) {
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         <div className="divide-y divide-gray-50">
                             {members.map(m => {
-                                const rc = roleConfig[m.role]
+                                const role = (m.role as Role) || 'read'
+                                const rc = roleConfig[role]
+                                const name = m.admin_user?.full_name || 'Pending'
+                                const email = m.admin_user?.email || m.email || 'No email'
+                                const avatar = name.charAt(0) || '?'
+
                                 return (
                                     <div key={m.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                            {m.avatar}
+                                            {avatar}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <p className="text-sm font-semibold text-gray-800 truncate">{m.name}</p>
-                                                {m.status === 'invited' && (
+                                                <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
+                                                {!m.is_active && (
                                                     <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">Pending</span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-gray-400 truncate">{m.email}</p>
+                                            <p className="text-xs text-gray-400 truncate">{email}</p>
                                         </div>
                                         <span className={`text-xs font-medium px-3 py-1 rounded-full flex-shrink-0 ${rc.bg} ${rc.text}`}>{rc.label}</span>
-                                        <span className="text-xs text-gray-400 flex-shrink-0 hidden sm:block">{m.joinedAt}</span>
-                                        {m.role !== 'owner' && (
+                                        <span className="text-xs text-gray-400 flex-shrink-0 hidden sm:block">
+                                            {m.joined_at ? new Date(m.joined_at).toLocaleDateString() : 'Pending'}
+                                        </span>
+                                        {role !== 'owner' && (
                                             <button className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -209,7 +245,13 @@ export default function MembersPage({ params }: { params: { orgId: string } }) {
                                 </div>
                                 <div className="flex gap-2 pt-1">
                                     <button type="button" onClick={() => setShowInvite(false)} className="flex-1 py-2.5 text-sm font-medium text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">Cancel</button>
-                                    <button type="submit" className="flex-1 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors shadow-sm">Send Invite</button>
+                                    <button
+                                        type="submit"
+                                        disabled={isInviting}
+                                        className="flex-1 py-2.5 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors shadow-sm disabled:opacity-50"
+                                    >
+                                        {isInviting ? 'Sending...' : 'Send Invite'}
+                                    </button>
                                 </div>
                             </form>
                         )}

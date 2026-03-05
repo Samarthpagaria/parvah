@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const {
   listOrganizations,
+  listMyOrganizations,
   createOrganization,
   getOrganization,
   updateOrganization,
@@ -12,7 +13,8 @@ const {
 } = require("../controllers/org.controller");
 
 // ── Super Admin only ───────────────────────────────────────
-router.get("/", auth, listOrganizations); // list all orgs
+router.get("/", auth, listOrganizations); // list all orgs (Super Admin)
+router.get("/my", auth, listMyOrganizations); // list user's orgs
 router.post("/", auth, createOrganization); // create new org
 router.delete("/:orgId", auth, deleteOrganization); // deactivate org
 

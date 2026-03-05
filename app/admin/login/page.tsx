@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { authAPI } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 
 export default function AdminLoginPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -13,6 +16,9 @@ export default function AdminLoginPage() {
     organizationCode: '',
   })
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const setAuth = useAuthStore(state => state.setAuth)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -20,20 +26,46 @@ export default function AdminLoginPage() {
     setError('')
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (isLogin) {
-      if (!formData.email || !formData.password) { setError('Please fill in all fields'); return }
-      // Role-based redirect simulation
-      if (formData.email.toLowerCase() === 'staff@gmail.com') {
-        window.location.href = '/staff/dashboard'
+    setIsLoading(true)
+    setError('')
+
+    try {
+      if (isLogin) {
+        if (!formData.email || !formData.password) {
+          setError('Please fill in all fields')
+          return
+        }
+
+        const data = await authAPI.loginAdmin(formData.email, formData.password)
+        setAuth(data.user, data.token, 'admin')
+
+        // Redirect based on role or just to dashboard
+        router.push('/admin/organizations')
       } else {
-        window.location.href = '/admin/organizations'
+        if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
+          setError('Please fill in all fields')
+          return
+        }
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match')
+          return
+        }
+
+        await authAPI.registerAdmin(formData.email, formData.password, formData.fullName)
+
+        // Auto-login after registration
+        const data = await authAPI.loginAdmin(formData.email, formData.password)
+        setAuth(data.user, data.token, 'admin')
+
+        // Redirect to dashboard (they will then see they need an org)
+        router.push('/admin/organizations')
       }
-    } else {
-      if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) { setError('Please fill in all fields'); return }
-      if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return }
-      window.location.href = '/admin/organizations'
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -161,9 +193,10 @@ export default function AdminLoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-colors mt-2"
+              disabled={isLoading}
+              className={`w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-colors mt-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {isLogin ? 'Sign In' : 'Create Account'}
+              {isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </form>
 

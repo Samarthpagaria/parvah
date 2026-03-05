@@ -155,6 +155,60 @@ const registerPublicUser = async (req, res) => {
   }
 };
 
+// Register Admin User
+// POST /api/auth/admin/register
+const registerAdmin = async (req, res) => {
+  try {
+    const { email, password, full_name } = req.body;
+
+    if (!email || !password || !full_name) {
+      return res
+        .status(400)
+        .json({ error: "Email, password and full name are required" });
+    }
+
+    // Step 1 — Create auth account in Supabase Auth
+    const { data, error } = await supabaseAdmin.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    // Step 2 — Create profile in admin_users table
+    const { data: newAdmin, error: insertError } = await supabaseAdmin
+      .from("admin_users")
+      .insert({
+        id: data.user.id,
+        email,
+        full_name,
+        is_active: true,
+        is_super_admin: false, // Regular admin by default
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Insert admin_user error:", insertError.message);
+      return res.status(500).json({ error: "Failed to create admin profile" });
+    }
+
+    res.status(201).json({
+      message: "Admin registration successful",
+      user: {
+        id: newAdmin.id,
+        email: newAdmin.email,
+        full_name: newAdmin.full_name,
+      },
+    });
+  } catch (err) {
+    console.error("registerAdmin error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 // Logout
 // POST /api/auth/logout
 const logout = async (req, res) => {
@@ -257,6 +311,7 @@ module.exports = {
   loginAdmin,
   loginPublicUser,
   registerPublicUser,
+  registerAdmin,
   logout,
   getMe,
   updateProfile,

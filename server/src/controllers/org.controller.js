@@ -53,16 +53,51 @@ const listOrganizations = async (req, res) => {
   }
 };
 
+// ── List User's Organizations ──────────────────────────────
+// GET /api/organizations/my
+// Access: Any Admin User
+const listMyOrganizations = async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("org_admin_members")
+      .select(`
+        role,
+        organization:organizations(*)
+      `)
+      .eq("admin_user_id", req.user.id)
+      .eq("is_active", true);
+
+    if (error) throw error;
+
+    // Flatten the structure
+    const organizations = data.map(item => ({
+      ...item.organization,
+      user_role: item.role
+    }));
+
+    res.json({ organizations });
+  } catch (err) {
+    console.error("listMyOrganizations error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 // ── Create Organization ────────────────────────────────────
 // POST /api/organizations
-// Access: Super Admin only
+// Access: Any Admin User
 const createOrganization = async (req, res) => {
   try {
-    const superAdmin = await isSuperAdmin(req.user.id);
-    if (!superAdmin) {
+    // Check if user exists in admin_users
+    const { data: adminUser, error: adminErr } = await supabaseAdmin
+      .from("admin_users")
+      .select("id")
+      .eq("id", req.user.id)
+      .single();
+
+    if (adminErr || !adminUser) {
       return res
         .status(403)
-        .json({ error: "Access denied. Super Admin only." });
+        .json({ error: "Access denied. Admin account required." });
     }
 
     const { name, slug, description, industry, logo_url } = req.body;
@@ -307,6 +342,7 @@ const removeMember = async (req, res) => {
 
 module.exports = {
   listOrganizations,
+  listMyOrganizations,
   createOrganization,
   getOrganization,
   updateOrganization,

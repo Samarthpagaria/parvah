@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { orgAPI } from '@/lib/api'
 
 export default function CreateOrganizationPage() {
     const [form, setForm] = useState({
@@ -17,6 +19,9 @@ export default function CreateOrganizationPage() {
         state: '',
     })
     const [submitted, setSubmitted] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState('')
+    const router = useRouter()
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
@@ -25,14 +30,36 @@ export default function CreateOrganizationPage() {
             [name]: value,
             ...(name === 'name' ? { slug: value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') } : {}),
         }))
+        setError('')
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setSubmitted(true)
-        setTimeout(() => {
-            window.location.href = '/admin/organizations'
-        }, 1200)
+        setIsLoading(true)
+        setError('')
+
+        try {
+            await orgAPI.create({
+                name: form.name,
+                slug: form.slug,
+                description: form.description,
+                industry: form.industry,
+                // Add more fields if backend supports them, or keep it to the basics
+                email: form.email,
+                phone: form.phone,
+                address: form.address,
+                city: form.city,
+                state: form.state,
+            })
+            setSubmitted(true)
+            setTimeout(() => {
+                router.push('/admin/organizations')
+            }, 1200)
+        } catch (err: any) {
+            setError(err.message || 'Failed to create organization')
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const industries = ['Government', 'Utilities', 'Environment', 'Transport', 'Health', 'Education', 'Other']
@@ -58,6 +85,12 @@ export default function CreateOrganizationPage() {
                     <h1 className="text-2xl font-bold text-gray-900">Create Organization</h1>
                     <p className="text-sm text-gray-500 mt-1">Set up a new organization to start managing civic issues.</p>
                 </div>
+
+                {error && (
+                    <div className="mb-6 px-4 py-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm">
+                        {error}
+                    </div>
+                )}
 
                 {submitted ? (
                     <div className="bg-white rounded-2xl border border-teal-100 shadow-sm p-10 text-center">
@@ -199,9 +232,10 @@ export default function CreateOrganizationPage() {
                             </Link>
                             <Button
                                 type="submit"
+                                disabled={isLoading}
                                 className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl px-6 shadow-sm font-medium"
                             >
-                                Create Organization
+                                {isLoading ? 'Creating...' : 'Create Organization'}
                             </Button>
                         </div>
                     </form>

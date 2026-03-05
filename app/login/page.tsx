@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { authAPI } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 
 export default function UserLoginPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -13,23 +16,56 @@ export default function UserLoginPage() {
     phone: '',
   })
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
+  const setAuth = useAuthStore(state => state.setAuth)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
     setError('')
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (isLogin) {
-      if (!formData.email || !formData.password) { setError('Please fill in all fields'); return }
-      window.location.href = '/dashboard'
-    } else {
-      if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
-        setError('Please fill in all fields'); return
+    setIsLoading(true)
+    setError('')
+
+    try {
+      if (isLogin) {
+        if (!formData.email || !formData.password) {
+          setError('Please fill in all fields')
+          return
+        }
+
+        const data = await authAPI.loginPublic(formData.email, formData.password)
+        setAuth(data.user, data.token, 'public')
+        router.push('/dashboard')
+      } else {
+        if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword || !formData.phone) {
+          setError('Please fill in all fields')
+          return
+        }
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match')
+          return
+        }
+
+        await authAPI.registerPublic({
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.fullName,
+          phone: formData.phone
+        })
+
+        // After registration, maybe login automatically or redirect to login
+        const data = await authAPI.loginPublic(formData.email, formData.password)
+        setAuth(data.user, data.token, 'public')
+        router.push('/dashboard')
       }
-      if (formData.password !== formData.confirmPassword) { setError('Passwords do not match'); return }
-      window.location.href = '/dashboard'
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -141,8 +177,9 @@ export default function UserLoginPage() {
               </div>
             )}
             <button type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-colors mt-2">
-              {isLogin ? 'Sign In' : 'Create Account'}
+              disabled={isLoading}
+              className={`w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl shadow-sm transition-colors mt-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </form>
 

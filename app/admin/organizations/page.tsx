@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { orgAPI } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 
 const mockOrgs = [
     {
@@ -45,11 +47,33 @@ const mockOrgs = [
 
 export default function OrganizationsPage() {
     const [search, setSearch] = useState('')
+    const [organizations, setOrganizations] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const { user, clearAuth } = useAuthStore()
 
-    const filtered = mockOrgs.filter(o =>
+    useEffect(() => {
+        const fetchOrgs = async () => {
+            try {
+                const data: any = await orgAPI.listMy()
+                setOrganizations(data.organizations || [])
+            } catch (err) {
+                console.error('Failed to fetch organizations:', err)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchOrgs()
+    }, [])
+
+    const filtered = organizations.filter(o =>
         o.name.toLowerCase().includes(search.toLowerCase()) ||
-        o.industry.toLowerCase().includes(search.toLowerCase())
+        (o.industry && o.industry.toLowerCase().includes(search.toLowerCase()))
     )
+
+    const handleLogout = () => {
+        clearAuth()
+        window.location.href = '/admin/login'
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -68,14 +92,14 @@ export default function OrganizationsPage() {
 
                     <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
-                            <p className="text-sm font-semibold text-gray-800">Super Admin</p>
-                            <p className="text-xs text-gray-400">admin@parvah.gov</p>
+                            <p className="text-sm font-semibold text-gray-800">{user?.full_name || 'Admin'}</p>
+                            <p className="text-xs text-gray-400">{user?.email}</p>
                         </div>
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                            SA
+                            {user?.full_name?.charAt(0) || 'A'}
                         </div>
                         <button
-                            onClick={() => window.location.href = '/admin/login'}
+                            onClick={handleLogout}
                             className="text-sm text-gray-500 hover:text-gray-700 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                             Logout
@@ -130,11 +154,11 @@ export default function OrganizationsPage() {
                             <Link key={org.id} href={`/admin/organizations/${org.id}/dashboard`} className="group">
                                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
                                     {/* Color bar */}
-                                    <div className={`h-1.5 bg-gradient-to-r ${org.color}`} />
+                                    <div className={`h-1.5 bg-gradient-to-r from-teal-500 to-cyan-400`} />
                                     <div className="p-5">
                                         {/* Header row */}
                                         <div className="flex items-start gap-3 mb-4">
-                                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${org.color} flex items-center justify-center shadow-sm flex-shrink-0`}>
+                                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-400 flex items-center justify-center shadow-sm flex-shrink-0`}>
                                                 <span className="text-white font-bold text-sm">{org.name.charAt(0)}</span>
                                             </div>
                                             <div className="flex-1 min-w-0">

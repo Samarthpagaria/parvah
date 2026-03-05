@@ -5,6 +5,7 @@ const {
   loginAdmin,
   loginPublicUser,
   registerPublicUser,
+  registerAdmin,
   logout,
   getMe,
   updateProfile,
@@ -12,6 +13,7 @@ const {
 
 // Public routes (no JWT needed)
 router.post("/admin/login", loginAdmin);
+router.post("/admin/register", registerAdmin);
 router.post("/public/login", loginPublicUser);
 router.post("/public/register", registerPublicUser);
 
