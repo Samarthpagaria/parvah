@@ -41,7 +41,6 @@ exports.logActivity = async ({
       action,
       old_value: oldValue,
       new_value: newValue,
-      org_id: finalOrgId,
     });
 
     if (error) {

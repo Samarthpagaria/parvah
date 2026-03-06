@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { issueAPI, authAPI } from '@/utils/backend_api_endpoints'
+import AiChatbot from '@/components/AiChatbot'
 
 type IssueStatus = 'open' | 'in_progress' | 'review' | 'resolved'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -36,15 +37,17 @@ const priorityConfig: Record<IssuePriority, { label: string; color: string; text
 
 const recentActivity: any[] = []
 
-const activityTypeConfig = {
-    resolve: { bg: 'bg-[#088395]/10', icon: 'text-[#088395]' },
-    created: { bg: 'bg-[#576CDB]/10', icon: 'text-[#576CDB]' },
-    status: { bg: 'bg-amber-50', icon: 'text-amber-500' },
-}
+const howItWorksSteps = [
+    { title: 'Report', desc: 'Pinpoint location and describe the issue.', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+    { title: 'Review', desc: 'Admin reviews and assigns the issue.', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+    { title: 'Resolve', desc: 'Staff works on resolving the issue.', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+    { title: 'Update', desc: 'Receive real-time progress updates.', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+]
 
 export default function UserDashboard() {
     const [filter, setFilter] = useState<'all' | IssueStatus>('all')
     const [showNotifications, setShowNotifications] = useState(false)
+    const [showHelp, setShowHelp] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
     const [issues, setIssues] = useState<Issue[]>([])
     const [user, setUser] = useState<{ full_name: string } | null>(null)
@@ -171,6 +174,32 @@ export default function UserDashboard() {
                     <p className="text-[15px] font-normal text-gray-500">Here's an overview of your reported issues.</p>
                 </div>
 
+                {/* Quick Actions */}
+                <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 transition-all duration-500 delay-50 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                    {[
+                        { label: 'Raise New Issue', icon: 'M12 4v16m8-8H4', href: '/dashboard/new-issue', color: 'text-[#088395] bg-[#088395]/5' },
+                        { label: 'View My Issues', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', href: '#issues-list', color: 'text-[#576CDB] bg-[#576CDB]/5' },
+                        { label: 'Track Status', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', href: '#issues-list', color: 'text-amber-600 bg-amber-50' },
+                        { label: 'Help / Guidelines', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', onClick: () => setShowHelp(true), color: 'text-emerald-600 bg-emerald-50' },
+                    ].map((action, idx) => (
+                        action.href ? (
+                            <Link key={idx} href={action.href} className="bg-white rounded-[20px] border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all group">
+                                <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={action.icon} /></svg>
+                                </div>
+                                <span className="text-[14px] font-normal text-[#201F47]">{action.label}</span>
+                            </Link>
+                        ) : (
+                            <button key={idx} onClick={action.onClick} className="bg-white text-left rounded-[20px] border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all group">
+                                <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={action.icon} /></svg>
+                                </div>
+                                <span className="text-[14px] font-normal text-[#201F47]">{action.label}</span>
+                            </button>
+                        )
+                    ))}
+                </div>
+
                 {/* Stats Grid */}
                 <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 transition-all duration-500 delay-100 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                     {[
@@ -198,7 +227,7 @@ export default function UserDashboard() {
 
                     {/* My Issues — 2/3 column */}
                     <div className="lg:col-span-2">
-                        <div className="flex items-center justify-between mb-5">
+                        <div id="issues-list" className="flex items-center justify-between mb-5">
                             <h2 className="text-[15px] font-normal text-[#201F47]">My Issues</h2>
                             <Link href="/dashboard/new-issue" className="flex items-center gap-1.5 text-[13px] font-normal text-[#088395] hover:text-[#066472] transition-colors">
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,37 +304,27 @@ export default function UserDashboard() {
 
                     {/* Right panel */}
                     <div className="flex flex-col gap-5">
-                        {/* Recent Activity */}
+                        {/* How Parvah Works */}
                         <div>
-                            <h2 className="text-[15px] font-normal text-[#201F47] mb-5">Recent Activity</h2>
-                            <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm overflow-hidden">
-                                <div className="divide-y divide-gray-50">
-                                    {recentActivity.map((a, i) => {
-                                        const tc = activityTypeConfig[a.type as keyof typeof activityTypeConfig]
-                                        return (
-                                            <div key={i} className="p-4 hover:bg-gray-50/50 transition-colors">
-                                                <div className="flex gap-3">
-                                                    <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${tc.bg}`}>
-                                                        {a.type === 'resolve' ? (
-                                                            <svg className={`w-4 h-4 ${tc.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" /></svg>
-                                                        ) : a.type === 'created' ? (
-                                                            <svg className={`w-4 h-4 ${tc.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
-                                                        ) : (
-                                                            <svg className={`w-4 h-4 ${tc.icon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0 pt-0.5">
-                                                        <p className="text-[13px] font-normal text-[#201F47] leading-snug mb-1">{a.action}</p>
-                                                        <div className="flex items-center gap-1.5">
-                                                            <Link href={`/dashboard/issues/${a.issueId}`} className="text-[11px] font-normal text-[#088395] hover:text-[#066472] transition-colors">{a.issueId}</Link>
-                                                            <span className="text-gray-300">·</span>
-                                                            <span className="text-[11px] font-normal text-gray-400">{a.time}</span>
-                                                        </div>
-                                                    </div>
+                            <h2 className="text-[15px] font-normal text-[#201F47] mb-5">How Parvah Works</h2>
+                            <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm p-6">
+                                <div className="space-y-6">
+                                    {howItWorksSteps.map((step, idx) => (
+                                        <div key={idx} className="flex gap-4">
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-8 h-8 rounded-full bg-[#088395]/10 text-[#088395] flex items-center justify-center text-[12px] font-bold shrink-0">
+                                                    {idx + 1}
                                                 </div>
+                                                {idx < howItWorksSteps.length - 1 && (
+                                                    <div className="w-px h-full bg-gray-100 my-1" />
+                                                )}
                                             </div>
-                                        )
-                                    })}
+                                            <div className="pb-2">
+                                                <h3 className="text-[14px] font-normal text-[#201F47] mb-0.5">{step.title}</h3>
+                                                <p className="text-[12px] font-normal text-gray-400 leading-relaxed">{step.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -333,6 +352,43 @@ export default function UserDashboard() {
                     </div>
                 </div>
             </main>
+            {/* Help Modal */}
+            {showHelp && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                    <div className="fixed inset-0 bg-[#201F47]/20 backdrop-blur-sm shadow-2xl" onClick={() => setShowHelp(false)} />
+                    <div className="bg-white rounded-[28px] border border-gray-100 shadow-2xl w-full max-w-[480px] relative z-[110] overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-[20px] font-normal text-[#201F47]">Help & Guidelines</h3>
+                                <button onClick={() => setShowHelp(false)} className="text-gray-400 hover:text-[#201F47]">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <div className="space-y-5">
+                                <div className="p-4 bg-teal-50 rounded-[20px]">
+                                    <h4 className="text-[14px] font-normal text-[#088395] mb-1">Clear Documentation</h4>
+                                    <p className="text-[13px] font-normal text-teal-600/80 leading-relaxed italic">"A picture is worth a thousand words."</p>
+                                    <p className="text-[12px] font-normal text-teal-600/70 mt-2">Always include relevant photos or videos when reporting an issue to help staff identify the problem quickly.</p>
+                                </div>
+                                <div>
+                                    <h4 className="text-[14px] font-normal text-[#201F47] mb-2">Reporting Guidelines</h4>
+                                    <ul className="space-y-2 text-[13px] font-normal text-gray-500">
+                                        <li className="flex gap-2"><span className="text-[#088395]">•</span> Be specific about the location.</li>
+                                        <li className="flex gap-2"><span className="text-[#088395]">•</span> Provide a clear and concise title.</li>
+                                        <li className="flex gap-2"><span className="text-[#088395]">•</span> Categorize the issue correctly.</li>
+                                        <li className="flex gap-2"><span className="text-[#088395]">•</span> Check for existing similar reports first.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowHelp(false)} className="w-full mt-8 bg-[#201F47] text-white py-3 rounded-xl font-normal text-[14px] hover:bg-[#14122d] transition-colors">
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <AiChatbot role="citizen" />
         </div>
     )
 }

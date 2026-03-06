@@ -2,32 +2,33 @@
 
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
+import { issueAPI } from '@/utils/backend_api_endpoints'
 
-type IssueStatus = 'open' | 'in-progress' | 'review' | 'resolved'
+type IssueStatus = 'open' | 'in_progress' | 'on_hold' | 'resolved' | 'closed' | 'rejected'
 
-const statusConfig: Record<IssueStatus, { label: string; color: string; dot: string; bg: string; border: string }> = {
+const statusConfig: Record<string, { label: string; color: string; dot: string; bg: string; border: string }> = {
     'open': { label: 'Open', color: 'text-amber-600', dot: 'bg-amber-400', bg: 'bg-amber-50', border: 'border-amber-200' },
-    'in-progress': { label: 'In Progress', color: 'text-[#576CDB]', dot: 'bg-[#576CDB]', bg: 'bg-[#576CDB]/10', border: 'border-[#576CDB]/20' },
-    'review': { label: 'Under Review', color: 'text-purple-600', dot: 'bg-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
+    'in_progress': { label: 'In Progress', color: 'text-[#576CDB]', dot: 'bg-[#576CDB]', bg: 'bg-[#576CDB]/10', border: 'border-[#576CDB]/20' },
+    'on_hold': { label: 'On Hold', color: 'text-orange-600', dot: 'bg-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
     'resolved': { label: 'Resolved', color: 'text-[#088395]', dot: 'bg-[#088395]', bg: 'bg-[#088395]/10', border: 'border-[#088395]/20' },
+    'closed': { label: 'Closed', color: 'text-gray-600', dot: 'bg-gray-400', bg: 'bg-gray-50', border: 'border-gray-200' },
+    'rejected': { label: 'Rejected', color: 'text-red-600', dot: 'bg-red-500', bg: 'bg-red-50', border: 'border-red-200' },
 }
 
 const priorityConfig: Record<string, { color: string; bg: string }> = {
-    'High': { color: 'text-[#F25A5A]', bg: 'bg-[#F25A5A]/10' },
-    'Medium': { color: 'text-amber-600', bg: 'bg-amber-50' },
-    'Low': { color: 'text-[#088395]', bg: 'bg-[#088395]/10' },
+    'high': { color: 'text-[#F25A5A]', bg: 'bg-[#F25A5A]/10' },
+    'medium': { color: 'text-amber-600', bg: 'bg-amber-50' },
+    'low': { color: 'text-[#088395]', bg: 'bg-[#088395]/10' },
 }
-
-
 
 const activityIconConfig: Record<string, { bg: string; icon: React.ReactNode }> = {
-    note: { bg: 'bg-[#576CDB]/10 text-[#576CDB]', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg> },
-    assign: { bg: 'bg-amber-50 text-amber-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
-    status: { bg: 'bg-purple-50 text-purple-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> },
-    created: { bg: 'bg-[#088395]/10 text-[#088395]', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    issue_created: { bg: 'bg-teal-50 text-teal-600', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg> },
+    issue_assigned: { bg: 'bg-amber-50 text-amber-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
+    status_updated: { bg: 'bg-blue-50 text-blue-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> },
+    issue_resolved: { bg: 'bg-green-50 text-green-600', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> },
+    comment_added: { bg: 'bg-purple-50 text-purple-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg> },
+    attachment_added: { bg: 'bg-indigo-50 text-indigo-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg> },
 }
-
-import { issueAPI, authAPI, analyticsAPI } from '@/utils/backend_api_endpoints'
 
 export default function IssueDetailPage({ params }: { params: Promise<{ issueId: string }> }) {
     const { issueId } = use(params)
@@ -36,6 +37,7 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
     const [comment, setComment] = useState('')
     const [comments, setComments] = useState<any[]>([])
     const [activity, setActivity] = useState<any[]>([])
+    const [attachments, setAttachments] = useState<any[]>([])
     const [submitting, setSubmitting] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
 
@@ -43,26 +45,25 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
         setIsMounted(true)
         const fetchIssueData = async () => {
             try {
-                const [details, act, comms] = await Promise.all([
+                const [details, act, comms, atts] = await Promise.all([
                     issueAPI.getDetails(issueId),
-                    issueAPI.getActivity(issueId),
-                    issueAPI.getComments(issueId)
+                    (issueAPI as any).getActivity(issueId),
+                    (issueAPI as any).getComments(issueId),
+                    (issueAPI as any).getAttachments(issueId)
                 ])
-                
-                // Map DB schema to frontend expected schema
-                const dbIssue = details.issue || {}
+
+                const dbIssue = details.issue || details
                 const mappedIssue = {
                     ...dbIssue,
                     category: dbIssue.issue_categories?.name || 'General',
-                    location: dbIssue.address || 'Location not specified',
                     submittedAt: new Date(dbIssue.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
                     assignedTo: dbIssue.admin_users?.full_name || null,
-                    activity: act.activity || [],
                 }
-                
+
                 setIssue(mappedIssue)
                 setActivity(act.activity || [])
                 setComments(comms.comments || [])
+                setAttachments(atts.attachments || [])
             } catch (err) {
                 console.error("Failed to fetch issue", err)
             } finally {
@@ -95,18 +96,21 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
         )
     }
 
-    const s = statusConfig[issue.status as IssueStatus] || statusConfig['open']
-    const pc = priorityConfig[issue.priority] ?? priorityConfig['Medium']
+    const s = statusConfig[issue.status] || statusConfig['open']
+    const pc = priorityConfig[issue.priority?.toLowerCase()] ?? priorityConfig['medium']
 
     const handleComment = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!comment.trim()) return
         setSubmitting(true)
         try {
-            const res = await issueAPI.postComment(issueId, comment)
+            const res = await (issueAPI as any).postComment(issueId, comment)
             if (res.comment) {
                 setComments(prev => [res.comment, ...prev])
                 setComment('')
+                // Refresh activity after comment
+                const act = await (issueAPI as any).getActivity(issueId)
+                setActivity(act.activity || [])
             }
         } catch (err) {
             console.error('Failed to post comment', err)
@@ -115,8 +119,27 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
         }
     }
 
-    const statusSteps: IssueStatus[] = ['open', 'in-progress', 'review', 'resolved']
-    const currentStep = statusSteps.indexOf(issue.status)
+    const getActivityDescription = (a: any) => {
+        const isSelf = a.actor_type === 'public_user';
+        const actorLabel = isSelf ? 'You' : 'Admin';
+
+        switch (a.action) {
+            case 'issue_created':
+                return isSelf ? 'Issue Created by You' : `Issue Created by ${a.actor_name || 'Admin'}`
+            case 'issue_assigned':
+                return `Admin assigned this issue to ${a.target_name || 'Staff'}`
+            case 'status_updated':
+                return `Status updated to ${statusConfig[a.new_value?.status]?.label || a.new_value?.status?.replace(/_/g, ' ') || 'New Status'}`
+            case 'issue_resolved':
+                return 'Staff marked the issue as Resolved'
+            case 'comment_added':
+                return `Comment added by ${isSelf ? 'You' : 'Admin'}`
+            case 'attachment_added':
+                return `${isSelf ? 'You' : 'Admin'} added an attachment: ${a.new_value?.file_name || 'file'}`
+            default:
+                return a.action?.replace(/_/g, ' ') || 'Activity recorded'
+        }
+    }
 
     return (
         <div className="min-h-screen bg-[#F9F9FB] font-sans">
@@ -135,8 +158,9 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
             <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
                 <div className="max-w-5xl mx-auto px-6 flex items-center justify-between h-[68px]">
                     <div className="flex items-center gap-4 min-w-0">
-                        <Link href="/" className="flex items-center gap-0.5 select-none group shrink-0">
-                            <span className="text-[17px] font-normal tracking-[-0.04em] text-[#201F47]">par</span><span className="text-[17px] font-normal tracking-[-0.04em] text-[#088395]">vah</span><span className="w-1.5 h-1.5 rounded-full bg-[#088395] mb-0.5 ml-0.5 self-end shrink-0 group-hover:scale-125 transition-transform" />
+                        <Link href="/" className="flex items-center gap-0.5 select-none group shrink-0 font-normal">
+                            <span className="text-[#201F47] text-[17px] tracking-tight">par</span><span className="text-[#088395] text-[17px] tracking-tight">vah</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#088395] mb-0.5 ml-0.5 group-hover:scale-125 transition-transform" />
                         </Link>
                         <span className="text-gray-200 shrink-0">/</span>
                         <div className="flex items-center gap-2 text-[13px] font-normal text-gray-400 min-w-0">
@@ -152,211 +176,199 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                 </div>
             </header>
 
-            <main className="max-w-5xl mx-auto px-6 py-7">
+            <main className="max-w-5xl mx-auto px-6 py-8">
 
-                {/* Issue Hero Card */}
-                <div className={`bg-white rounded-[24px] border border-gray-100 p-6 md:p-7 mb-5 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.05s' }}>
-                    <div className="flex flex-col md:flex-row md:items-start gap-4">
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2.5">
-                                <span className="text-[11px] font-normal text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">{issue.id}</span>
-                                <span className="text-gray-300">·</span>
-                                <span className="text-[12px] font-normal text-gray-500">{issue.category}</span>
-                            </div>
-                            <h1 className="text-[22px] md:text-[24px] font-normal text-[#201F47] leading-snug mb-4 tracking-tight">{issue.title}</h1>
-
-                            {/* Meta row */}
-                            <div className="flex flex-wrap gap-x-5 gap-y-2.5">
-                                <div className="flex items-center gap-2 text-[13px] text-gray-500">
-                                    <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                    <span>{issue.location}{issue.landmark && <span className="text-gray-400"> · {issue.landmark}</span>}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-[13px] text-gray-500">
-                                    <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    <span>{issue.submittedAt}</span>
-                                </div>
-                                {issue.assignedTo && (
-                                    <div className="flex items-center gap-2 text-[13px] text-gray-500">
-                                        <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                                        <span>Assigned to <span className="text-[#088395]">{issue.assignedTo}</span></span>
-                                    </div>
-                                )}
-                            </div>
+                {/* Hero Header */}
+                <div className={`mb-8 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.05s' }}>
+                    <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <span className="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-lg tracking-wider uppercase">{issue.id.split('-')[0]}</span>
+                        <span className={`px-3 py-1 rounded-lg text-[11px] font-semibold tracking-wider uppercase ${pc.bg} ${pc.color}`}>
+                            {issue.priority || 'medium'} Priority
+                        </span>
+                        <span className="text-[12px] text-gray-400 font-medium">{issue.category}</span>
+                    </div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-[#201F47] tracking-tight mb-4">{issue.title}</h1>
+                    <div className="flex flex-wrap gap-6 text-sm text-gray-500">
+                        <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            {issue.latitude ? `${issue.latitude.toFixed(5)}, ${issue.longitude.toFixed(5)}` : 'Location not provided'}
                         </div>
-
-                        {/* Priority badge */}
-                        <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl text-[12px] font-normal shrink-0 self-start ${pc.bg} ${pc.color}`}>
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                            {issue.priority} Priority
+                        <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            {issue.submittedAt}
                         </div>
                     </div>
                 </div>
 
-                {/* Main grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    {/* Left: Description + Activity + Comment */}
-                    <div className="lg:col-span-2 flex flex-col gap-5">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left: Content */}
+                    <div className="lg:col-span-2 space-y-8">
 
-                        {/* Description */}
-                        <div className={`bg-white rounded-[24px] border border-gray-100 p-6 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.1s' }}>
-                            <p className="text-[12px] font-normal text-gray-400 uppercase tracking-wider mb-4">Description</p>
-                            <p className="text-[14px] font-normal text-gray-600 leading-relaxed">{issue.description}</p>
-                        </div>
+                        {/* 1. Description */}
+                        <section className={`bg-white rounded-3xl border border-gray-100 p-8 shadow-sm ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.1s' }}>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Description</h3>
+                            <p className="text-[15px] text-gray-600 font-normal leading-relaxed">{issue.description}</p>
+                        </section>
 
-                        {/* Activity Log */}
-                        <div className={`bg-white rounded-[24px] border border-gray-100 overflow-hidden ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.15s' }}>
-                            <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-                                <p className="text-[11px] font-normal text-gray-400 uppercase tracking-wider">Activity Log</p>
-                                <span className="text-[11px] font-normal text-gray-400">{(issue.activity?.length || 0) + (comments?.length || 0)} events</span>
-                            </div>
-                            <div className="p-5 space-y-1">
-                                {/* User comments first */}
-                                {comments.map((c: any, i: number) => (
-                                    <div key={`uc-${i}`} className="flex gap-3.5 p-3 rounded-2xl bg-[#088395]/5 mb-2">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#088395] to-[#576CDB] flex items-center justify-center text-white text-[12px] font-normal shrink-0">
-                                            {c.author_type === 'staff' ? 'S' : 'U'}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <p className="text-[13px] font-normal text-[#201F47]">{c.author_type === 'staff' ? 'Staff' : 'You'}</p>
-                                                <span className="text-[11px] text-gray-400">{new Date(c.created_at).toLocaleString()}</span>
-                                            </div>
-                                            <p className="text-[13px] font-normal text-gray-600 leading-relaxed">{c.content}</p>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                {/* System Activity Events */}
-                                {activity.map((a: any, i: number) => {
-                                    const cfg = activityIconConfig[a.action?.toLowerCase()] ?? activityIconConfig['created']
-                                    return (
-                                        <div key={i} className="flex gap-3.5 p-3 rounded-2xl hover:bg-gray-50/50 transition-colors">
-                                            <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${cfg.bg}`}>
-                                                {cfg.icon}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <p className="text-[13px] font-normal text-[#201F47]">{a.actor_type === 'public_user' ? 'You' : 'Staff'}</p>
-                                                    <span className="text-[11px] text-gray-400">{new Date(a.created_at).toLocaleString()}</span>
+                        {/* 2. Attachments */}
+                        {attachments.length > 0 && (
+                            <section className={`bg-white rounded-3xl border border-gray-100 p-8 shadow-sm ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.12s' }}>
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Attachments</h3>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                    {attachments.map((att) => (
+                                        <div key={att.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
+                                            {att.file_type.startsWith('image/') ? (
+                                                <img src={att.file_url} alt={att.file_name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-gray-400">
+                                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                                    <span className="text-[10px] font-semibold uppercase">{att.file_name.split('.').pop()}</span>
                                                 </div>
-                                                <p className="text-[13px] font-normal text-gray-500">{a.action?.replace(/_/g, ' ')}</p>
-                                                {a.new_value && (
-                                                    <div className="mt-2.5 bg-gray-50/80 rounded-2xl border border-gray-100 px-4 py-3">
-                                                        <p className="text-[13px] font-normal text-gray-600 leading-relaxed">
-                                                            {typeof a.new_value === 'object' ? JSON.stringify(a.new_value) : a.new_value}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            )}
+                                            <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                            </a>
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
-                        {/* Add Comment */}
-                        <div className={`bg-white rounded-[24px] border border-gray-100 p-6 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.2s' }}>
-                            <p className="text-[11px] font-normal text-gray-400 uppercase tracking-wider mb-4">Add Information or Comment</p>
-                            <form onSubmit={handleComment} className="space-y-3">
-                                <textarea
-                                    rows={3}
+                        {/* 3. Comments */}
+                        <section className={`bg-white rounded-3xl border border-gray-100 p-8 shadow-sm ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.14s' }}>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Discussion</h3>
+
+                            {/* Comment Form */}
+                            <form onSubmit={handleComment} className="mb-8 p-1.5 bg-gray-50 rounded-2xl flex items-center gap-2 border border-gray-100 focus-within:bg-white focus-within:ring-4 focus-within:ring-teal-500/10 focus-within:border-teal-500/30 transition-all">
+                                <input
                                     value={comment}
                                     onChange={e => setComment(e.target.value)}
-                                    placeholder="Add any additional details, updates, or questions about this issue..."
-                                    className="w-full px-4 py-3 text-[13px] font-normal border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-[#088395]/10 focus:border-[#088395] transition-all resize-none bg-gray-50/50 focus:bg-white text-[#201F47] placeholder:text-gray-400"
+                                    placeholder="Add a comment or update..."
+                                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm px-3 placeholder:text-gray-400"
                                 />
-                                <div className="flex justify-end">
-                                    <button
-                                        type="submit"
-                                        disabled={!comment.trim() || submitting}
-                                        className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-normal text-white bg-[#201F47] hover:bg-[#2c2b5c] rounded-[14px] shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                                    >
-                                        {submitting ? (
-                                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                            </svg>
-                                        )}
-                                        {submitting ? 'Sending...' : 'Send Update'}
-                                    </button>
-                                </div>
+                                <button
+                                    disabled={!comment.trim() || submitting}
+                                    className="p-2.5 rounded-xl bg-[#201F47] text-white hover:bg-teal-600 transition-colors disabled:opacity-20"
+                                >
+                                    {submitting ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                                    )}
+                                </button>
                             </form>
-                        </div>
-                    </div>
 
-                    {/* Right Column */}
-                    <div className="flex flex-col gap-4">
-
-                        {/* Status Progress */}
-                        <div className={`bg-white rounded-[24px] border border-gray-100 p-5 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.12s' }}>
-                            <p className="text-[11px] font-normal text-gray-400 uppercase tracking-wider mb-5">Resolution Status</p>
-                            <div className="space-y-0">
-                                {statusSteps.map((status, idx) => {
-                                    const sc = statusConfig[status]
-                                    const isDone = idx < currentStep
-                                    const isCurrent = idx === currentStep
-                                    const isUpcoming = idx > currentStep
-                                    return (
-                                        <div key={status} className="flex gap-3.5">
-                                            <div className="flex flex-col items-center">
-                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 border-2 transition-all ${isDone ? 'bg-[#088395] border-[#088395]' :
-                                                    isCurrent ? `${sc.bg} ${sc.border}` :
-                                                        'bg-white border-gray-200'
-                                                    }`}>
-                                                    {isDone ? (
-                                                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                                                    ) : (
-                                                        <span className={`w-2 h-2 rounded-full ${isCurrent ? sc.dot : 'bg-gray-200'}`} />
-                                                    )}
-                                                </div>
-                                                {idx < statusSteps.length - 1 && (
-                                                    <div className={`w-0.5 h-8 mt-0.5 ${isDone ? 'bg-[#088395]/30' : 'bg-gray-100'}`} />
-                                                )}
+                            <div className="space-y-6">
+                                {comments.length === 0 ? (
+                                    <p className="text-gray-400 text-sm text-center py-4 italic">No comments yet</p>
+                                ) : (
+                                    comments.map((c) => (
+                                        <div key={c.id} className="flex gap-4 group">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${c.author_type === 'staff' ? 'bg-teal-600' : 'bg-[#201F47]'}`}>
+                                                <span className="text-white text-xs font-bold leading-none">{c.author_type === 'staff' ? 'S' : 'U'}</span>
                                             </div>
-                                            <div className="pb-5">
-                                                <p className={`text-[13px] font-normal ${isCurrent ? sc.color :
-                                                    isDone ? 'text-[#088395]' :
-                                                        'text-gray-300'
-                                                    }`}>
-                                                    {sc.label}
-                                                    {isCurrent && <span className="ml-1.5 text-[10px] font-normal opacity-60">← Current</span>}
-                                                </p>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <span className="text-sm font-bold text-[#201F47]">{c.author_type === 'staff' ? 'Management' : 'You'}</span>
+                                                    <span className="text-[11px] font-medium text-gray-400">{new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(c.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-2xl rounded-tl-none group-hover:bg-gray-100/70 transition-colors">{c.content}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </section>
+
+                        {/* 4. Activity Timeline */}
+                        <section className={`bg-white rounded-3xl border border-gray-100 p-8 shadow-sm ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.16s' }}>
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-8">Activity Timeline</h3>
+                            <div className="relative space-y-8 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-100">
+                                {activity.map((a, i) => {
+                                    const cfg = activityIconConfig[a.action] || activityIconConfig['status_updated']
+                                    return (
+                                        <div key={a.id || i} className="relative flex gap-6 pl-10 group">
+                                            {/* Dot on line */}
+                                            <div className={`absolute left-0 w-9 h-9 rounded-full flex items-center justify-center z-10 border-4 border-white shadow-sm transition-transform group-hover:scale-110 ${cfg.bg}`}>
+                                                {cfg.icon}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-[#201F47] mb-0.5">{getActivityDescription(a)}</p>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                                                        {a.actor_type === 'public_user' ? 'User' : 'Admin'}
+                                                    </span>
+                                                    <span className="text-[11px] text-gray-400 font-medium">{new Date(a.created_at).toLocaleString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                                {a.action === 'status_updated' && a.new_value?.status && (
+                                                    <p className="text-xs text-teal-600 font-semibold bg-teal-50 inline-block px-2.5 py-1 rounded-lg border border-teal-100">
+                                                        {a.old_value?.status || 'open'} → {a.new_value.status}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     )
                                 })}
                             </div>
-                        </div>
+                        </section>
+                    </div>
 
-                        {/* Details Panel */}
-                        <div className={`bg-white rounded-[24px] border border-gray-100 p-5 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.17s' }}>
-                            <p className="text-[11px] font-normal text-gray-400 uppercase tracking-wider mb-4">Issue Details</p>
-                            <div className="space-y-3.5">
-                                {[
-                                    { label: 'Issue ID', value: issue.id },
-                                    { label: 'Category', value: issue.category },
-                                    { label: 'Priority', value: issue.priority },
-                                    { label: 'Submitted', value: issue.submittedAt },
-                                    { label: 'Assigned To', value: issue.assignedTo ?? 'Pending assignment' },
-                                ].map(d => (
-                                    <div key={d.label} className="flex justify-between items-start gap-3">
-                                        <span className="text-[12px] font-normal text-gray-400 shrink-0">{d.label}</span>
-                                        <span className={`text-[12px] font-normal text-right ${d.label === 'Assigned To' && issue.assignedTo ? 'text-[#088395]' : 'text-[#201F47]'}`}>{d.value}</span>
-                                    </div>
-                                ))}
+                    {/* Right: Sidebar */}
+                    <div className="space-y-6">
+                        {/* Summary Status Panel */}
+                        <div className={`bg-[#201F47] rounded-3xl p-8 text-white shadow-xl shadow-[#201F47]/20 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.18s' }}>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-6">Current Status</p>
+                            <div className="flex items-center gap-3 mb-8">
+                                <div className={`w-3 h-3 rounded-full animate-pulse ${s.dot}`} />
+                                <h4 className="text-2xl font-bold">{s.label}</h4>
+                            </div>
+                            <div className="space-y-4 pt-6 border-t border-white/10">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-white/50">Urgency</span>
+                                    <span className={`font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider ${pc.bg} ${pc.color}`}>
+                                        {issue.priority || 'Medium'}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-white/50">Staff</span>
+                                    <span className="font-bold text-teal-400">{issue.assignedTo || 'Pending'}</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Urgent help */}
-                        <div className={`bg-[#201F47] rounded-[24px] p-5 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.22s' }}>
-                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center mb-3">
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        {/* Location Mini Card */}
+                        <div className={`bg-white rounded-3xl border border-gray-100 p-6 shadow-sm ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.2s' }}>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                </div>
+                                <h4 className="text-sm font-bold text-[#201F47]">Location Detail</h4>
                             </div>
-                            <p className="text-[13px] font-normal text-white mb-1.5">Need urgent help?</p>
-                            <p className="text-[12px] font-normal text-white/60 leading-relaxed">
-                                For life-threatening situations, call <span className="text-white font-normal">112</span> immediately. For civic emergencies, contact your local municipal helpline.
+                            <div className="space-y-3">
+                                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <p className="text-[12px] text-gray-600 font-medium leading-relaxed">{issue.address || 'Street address not available'}</p>
+                                </div>
+                                <div className="flex items-center gap-2 px-1">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Coordinates</span>
+                                    <span className="text-[11px] font-mono text-gray-500">{issue.latitude?.toFixed(6) || 0}, {issue.longitude?.toFixed(6) || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Help Banner */}
+                        <div className={`bg-gradient-to-br from-teal-500 to-teal-700 rounded-3xl p-6 text-white shadow-lg shadow-teal-500/20 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.22s' }}>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <h4 className="text-sm font-bold">Help & Support</h4>
+                            </div>
+                            <p className="text-xs text-white/80 leading-relaxed mb-4">
+                                Questions about your report? Contact the organization's helpline directly for faster resolution.
                             </p>
+                            <button className="w-full py-3 bg-white text-teal-700 rounded-2xl text-[12px] font-bold hover:bg-teal-50 transition-colors">
+                                View Help Center
+                            </button>
                         </div>
                     </div>
                 </div>

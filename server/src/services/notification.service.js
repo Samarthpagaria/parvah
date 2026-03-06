@@ -59,7 +59,6 @@ exports.sendNotification = async ({
         const rows = recipients.map(({ id, type: rType }) => ({
             recipient_id: id,
             recipient_type: rType,
-            org_id: finalOrgId || null,
             issue_id: issueId || null,
             type,
             title,

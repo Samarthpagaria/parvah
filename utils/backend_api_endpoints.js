@@ -342,7 +342,6 @@ export const issueAPI = {
     }),
 };
 
-
 /**
  * 📊 ANALYTICS MODULE
  * -------------------
@@ -356,4 +355,17 @@ export const analyticsAPI = {
   getStaffPerformance: (orgId) =>
     apiFetch(`/analytics/staff-performance/${orgId}`),
   getResolutionTime: (orgId) => apiFetch(`/analytics/resolution-time/${orgId}`),
+};
+
+/**
+ * 🤖 AI MODULE
+ * -------------------
+ */
+
+export const aiAPI = {
+  chat: (messages, role) =>
+    apiFetch("/ai/chat", {
+      method: "POST",
+      body: JSON.stringify({ messages, role }),
+    }),
 };

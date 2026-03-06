@@ -1,11 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { aiAPI } from '@/utils/backend_api_endpoints'
 
 interface Message {
     role: 'user' | 'assistant'
     content: string
 }
+
+import ReactMarkdown from 'react-markdown';
 
 export default function OrgAssistant({ orgId }: { orgId: string }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -20,28 +23,20 @@ export default function OrgAssistant({ orgId }: { orgId: string }) {
 
         const userMsg = input.trim()
         setInput('')
-        setMessages(prev => [...prev, { role: 'user', content: userMsg }])
+        
+        const newMessages = [...messages, { role: 'user', content: userMsg } as Message];
+        setMessages(newMessages)
         setIsLoading(true)
 
         try {
-            const token = localStorage.getItem('parvah_admin_token')
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'}/api/ai/chat`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ orgId, message: userMsg })
-            })
-
-            const data = await response.json()
-            if (data.reply) {
-                setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+            const response = await aiAPI.chat(newMessages, 'admin');
+            if (response.reply) {
+                setMessages([...newMessages, { role: 'assistant', content: response.reply }])
             } else {
-                setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't process that request." }])
+                setMessages([...newMessages, { role: 'assistant', content: "Sorry, I couldn't process that request." }])
             }
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: "Error connecting to service." }])
+            setMessages([...newMessages, { role: 'assistant', content: "Error connecting to AI service." }])
         } finally {
             setIsLoading(false)
         }
@@ -76,8 +71,14 @@ export default function OrgAssistant({ orgId }: { orgId: string }) {
                     <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar-chat">
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] rounded-[18px] px-4 py-2.5 text-[13px] font-normal leading-relaxed ${m.role === 'user' ? 'bg-[#576CDB] text-white rounded-br-none' : 'bg-gray-100 text-[#201F47] rounded-bl-none'}`}>
-                                    {m.content}
+                                <div className={`max-w-[90%] rounded-[18px] px-4 py-2.5 text-[13px] font-normal leading-relaxed ${m.role === 'user' ? 'bg-[#576CDB] text-white rounded-br-none' : 'bg-gray-100 text-[#201F47] rounded-bl-none'}`}>
+                                    {m.role === 'user' ? (
+                                        m.content
+                                    ) : (
+                                        <div className="prose prose-sm prose-zinc max-w-none space-y-2 pb-0 mb-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_a]:text-[#576CDB] [&_a]:underline">
+                                            <ReactMarkdown>{m.content}</ReactMarkdown>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
