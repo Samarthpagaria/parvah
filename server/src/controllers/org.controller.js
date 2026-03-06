@@ -338,7 +338,7 @@ const listOrgMembers = async (req, res) => {
       ...m,
       admin_user: m.admin_user || {
         id: m.admin_user_id,
-        full_name: "Unknown Admin",
+        full_name: `Unknown Admin (${m.admin_user_id.slice(0, 8)})`,
         email: "unknown@parvah.gov",
         avatar_url: null
       }
@@ -374,7 +374,7 @@ const removeMember = async (req, res) => {
     }
 
     console.log(`[removeMember] org=${orgId} target=${memberId} by=${userId}`);
-    // soft delete — set is_active = false
+    // deactivation from org_admin_members
     const { error } = await supabaseAdmin
       .from("org_admin_members")
       .update({ is_active: false })
@@ -560,6 +560,76 @@ const listCategoriesByOrg = async (req, res) => {
   }
 };
 
+// ── Update Org Category ────────────────────────────────────
+// PUT /api/organizations/:orgId/categories/:catId
+const updateOrgCategory = async (req, res) => {
+  try {
+    const { orgId, catId } = req.params;
+    const { name, color, icon } = req.body;
+    const userId = req.user.id;
+
+    const role = await getOrgRole(userId, orgId);
+    const superAdmin = await isSuperAdmin(userId);
+    if (!superAdmin && !["owner", "staff"].includes(role)) {
+      return res.status(403).json({ error: "Access denied. Org owner or staff only." });
+    }
+
+    console.log(`[updateOrgCategory:DB_UPDATE] org=${orgId} cat=${catId} name=${name} by=${userId}`);
+    const { data, error } = await supabaseAdmin
+      .from("issue_categories")
+      .update({ name, color, icon })
+      .eq("id", catId)
+      .eq("org_id", orgId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ category: data });
+  } catch (err) {
+    console.error("updateOrgCategory error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ── Update Member Role ─────────────────────────────────────
+// PUT /api/organizations/:orgId/members/:memberId
+// Access: Org Admin (owner) only
+const updateMember = async (req, res) => {
+  try {
+    const { orgId, memberId } = req.params;
+    const { role: newRole } = req.body;
+    const userId = req.user.id;
+
+    if (!newRole) {
+      return res.status(400).json({ error: "Role is required." });
+    }
+
+    const myRole = await getOrgRole(userId, orgId);
+    const superAdmin = await isSuperAdmin(userId);
+
+    if (myRole !== "owner" && !superAdmin) {
+      return res.status(403).json({ error: "Access denied. Org owner only." });
+    }
+
+    console.log(`[updateMember] org=${orgId} target=${memberId} newRole=${newRole} by=${userId}`);
+
+    const { error } = await supabaseAdmin
+      .from("org_admin_members")
+      .update({ role: newRole })
+      .eq("org_id", orgId)
+      .eq("admin_user_id", memberId)
+      .eq("is_active", true);
+
+    if (error) throw error;
+
+    res.json({ message: "Member role updated successfully" });
+  } catch (err) {
+    console.error("updateMember error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   listOrganizations,
   createOrganization,
@@ -568,8 +638,10 @@ module.exports = {
   deleteOrganization,
   listOrgMembers,
   removeMember,
+  updateMember,
   listOrgCategories,
   createOrgCategory,
+  updateOrgCategory,
   deleteOrgCategory,
   listMyCategories,
   listActiveOrganizations,

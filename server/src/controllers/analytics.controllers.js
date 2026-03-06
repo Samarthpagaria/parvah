@@ -382,7 +382,12 @@ exports.getStaffPerformance = async (req, res) => {
         }
 
         const staff = staffMembers.map((member) => {
-            const user = member.admin_user;
+            const user = member.admin_user || {
+                id: member.admin_user_id,
+                full_name: `Unknown Staff (${member.admin_user_id.slice(0, 8)})`,
+                email: 'n/a',
+                avatar_url: null
+            };
             const perf = perfMap[member.admin_user_id];
             const avgResolutionHours =
                 perf.resolvedCount > 0

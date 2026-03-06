@@ -9,7 +9,7 @@ import {
     Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
     AreaChart, Area
 } from 'recharts'
-import { analyticsAPI, orgAPI, authAPI } from '@/utils/backend_api_endpoints'
+import { analyticsAPI, orgAPI, authAPI, issueAPI } from '@/utils/backend_api_endpoints'
 import {
     Activity, CheckCircle2, AlertCircle, Clock,
     BarChart3, PieChart as PieIcon, TrendingUp, Users
@@ -19,6 +19,35 @@ import {
 
 
 const COLORS = ['#576CDB', '#088395', '#F25A5A', '#7AB2B2', '#FFBB28', '#FF8042']
+
+type Status = 'open' | 'in_progress' | 'resolved'
+type Priority = 'low' | 'medium' | 'high' | 'critical'
+
+interface AssignedIssue {
+    id: string
+    title: string
+    category: string
+    description: string
+    priority: Priority
+    reporter: string
+    assignedAt: string
+    status: Status
+    location: string
+    notes?: string
+}
+
+const pConfig: Record<Priority, { label: string; dot: string; badge: string }> = {
+    low: { label: 'Low', dot: 'bg-blue-400', badge: 'bg-blue-50 text-blue-600' },
+    medium: { label: 'Medium', dot: 'bg-yellow-400', badge: 'bg-yellow-50 text-yellow-700' },
+    high: { label: 'High', dot: 'bg-orange-400', badge: 'bg-orange-50 text-orange-700' },
+    critical: { label: 'Critical', dot: 'bg-red-500', badge: 'bg-red-50 text-red-700' },
+}
+
+const statusConfig: Record<Status, { label: string; color: string; next: Status | null; nextLabel: string }> = {
+    'open': { label: 'Pending', color: 'text-amber-600 bg-amber-50', next: 'in_progress', nextLabel: 'Start Working' },
+    'in_progress': { label: 'In Progress', color: 'text-blue-600 bg-blue-50', next: 'resolved', nextLabel: 'Mark Complete' },
+    'resolved': { label: 'Completed', color: 'text-teal-600 bg-teal-50', next: null, nextLabel: '' },
+}
 
 export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params)
@@ -31,6 +60,9 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
     const [statusDist, setStatusDist] = useState<any[]>([])
     const [staffPerf, setStaffPerf] = useState<any[]>([])
     const [role, setRole] = useState<any>(null)
+    const [assignedIssues, setAssignedIssues] = useState<AssignedIssue[]>([])
+    const [selectedIssue, setSelectedIssue] = useState<AssignedIssue | null>(null)
+    const [filter, setFilter] = useState<'all' | Status>('all')
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -50,8 +82,26 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
                 setStatusDist(st.distribution || [])
                 setStaffPerf(sp.staff || [])
                 setOrg(orgRes.organization)
-                setRole(orgRes.my_role)
+                const myRole = orgRes.my_role
+                setRole(myRole)
                 setUser(userRes.user)
+
+                if (myRole === 'staff') {
+                    const issuesRes = await issueAPI.list({ assigned_to: userRes.user.id, org_id: orgId })
+                    const list = (issuesRes.issues || []).map((i: any) => ({
+                        id: i.id,
+                        title: i.title,
+                        category: i.issue_categories?.name || 'General',
+                        description: i.description,
+                        priority: i.priority,
+                        reporter: i.public_users?.full_name || 'Citizen',
+                        assignedAt: new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
+                        status: i.status === 'open' ? 'open' : i.status === 'resolved' ? 'resolved' : 'in_progress',
+                        location: i.address || 'Local Area',
+                        notes: i.resolution_note
+                    }))
+                    setAssignedIssues(list)
+                }
             } catch (err) {
                 console.error("Failed to fetch analytics", err)
             } finally {
@@ -115,22 +165,106 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
                     </div>
 
                     {role === 'staff' ? (
-                        <div className="space-y-8 text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200">
-                            <div className="w-20 h-20 bg-[#088395]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <Users className="w-10 h-10 text-[#088395]" />
+                        <div className="flex-1 flex flex-col min-h-0">
+                            {/* Staff Stats */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                <KPICard title="Your Tasks" value={assignedIssues.length} icon={<Activity className="text-purple-500" />} trend="Active assignments" />
+                                <KPICard title="Pending" value={assignedIssues.filter(i => i.status === 'open').length} icon={<AlertCircle className="text-amber-500" />} trend="Awaiting action" />
+                                <KPICard title="In Progress" value={assignedIssues.filter(i => i.status === 'in_progress').length} icon={<Clock className="text-blue-500" />} trend="Current focus" />
+                                <KPICard title="Completed" value={assignedIssues.filter(i => i.status === 'resolved').length} icon={<CheckCircle2 className="text-teal-500" />} trend="Last 30 days" />
                             </div>
-                            <div>
-                                <h3 className="text-xl font-normal text-[#201F47] mb-2">Welcome to the Staff Portal</h3>
-                                <p className="text-gray-500 max-w-sm mx-auto">
-                                    As a Staff member, you can track your assigned issues and collaborate on the board.
-                                    Organization-wide analytics are restricted to management.
-                                </p>
+
+                            {/* Filters */}
+                            <div className="flex items-center gap-2 mb-6 flex-wrap">
+                                {(['all', 'open', 'in_progress', 'resolved'] as const).map(f => (
+                                    <button
+                                        key={f}
+                                        onClick={() => setFilter(f)}
+                                        className={`px-4 py-1.5 rounded-full text-xs font-normal transition-all ${filter === f
+                                            ? 'bg-[#201F47] text-white'
+                                            : 'bg-white text-gray-400 border border-gray-100 hover:border-gray-200 hover:text-gray-600'
+                                            }`}
+                                    >
+                                        {f === 'all' ? 'All Assignments' : statusConfig[f].label}
+                                    </button>
+                                ))}
+                                <span className="text-[11px] text-gray-400 ml-auto font-normal">{assignedIssues.filter(i => filter === 'all' || i.status === filter).length} showing</span>
                             </div>
-                            <div className="flex justify-center gap-4">
-                                <Link href={`/admin/organizations/${orgId}/kanban`} className="px-6 py-3 bg-[#088395] text-white rounded-2xl hover:bg-[#066d7c] transition-all shadow-lg shadow-[#088395]/10">
-                                    View My Board
-                                </Link>
+
+                            {/* Assignments List */}
+                            <div className="space-y-4">
+                                {assignedIssues.filter(i => filter === 'all' || i.status === filter).length === 0 ? (
+                                    <div className="bg-white rounded-[32px] border border-dashed border-gray-200 p-16 text-center">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <CheckCircle2 className="w-8 h-8 text-gray-300" />
+                                        </div>
+                                        <p className="text-[15px] font-normal text-gray-400">No issues found with this status.</p>
+                                    </div>
+                                ) : assignedIssues.filter(i => filter === 'all' || i.status === filter).map(issue => {
+                                    const p = pConfig[issue.priority]
+                                    const s = statusConfig[issue.status]
+                                    return (
+                                        <div key={issue.id} className="bg-white rounded-[24px] border border-gray-100 shadow-sm p-6 hover:shadow-md transition-all groups">
+                                            <div className="flex items-start gap-5">
+                                                <div className={`w-1 rounded-full flex-shrink-0 self-stretch ${p.dot}`} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <div>
+                                                            <h3 className="text-[16px] font-normal text-[#201F47] mb-1">{issue.title}</h3>
+                                                            <p className="text-[13px] text-gray-400 font-normal">{issue.location}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                                            <span className={`text-[10px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-lg ${p.badge} flex items-center gap-1.5`}>
+                                                                <span className={`w-1 h-1 rounded-full ${p.dot}`} />{p.label}
+                                                            </span>
+                                                            <span className={`text-[10px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-lg ${s.color}`}>{s.label}</span>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[14px] text-gray-500 font-normal mt-3 leading-relaxed line-clamp-2">{issue.description}</p>
+                                                    {issue.notes && (
+                                                        <div className="mt-4 bg-[#F9F9FB] rounded-2xl px-4 py-3 border border-gray-50">
+                                                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Latest Update</p>
+                                                            <p className="text-[13px] text-gray-600 font-normal italic">"{issue.notes}"</p>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-50/50">
+                                                        <div className="flex items-center gap-4">
+                                                            <span className="text-[11px] font-medium text-[#088395] bg-[#088395]/5 px-2 py-0.5 rounded-md">{issue.category}</span>
+                                                            <span className="text-[11px] font-normal text-gray-400">Reported by <span className="text-gray-600 font-medium">{issue.reporter}</span></span>
+                                                            <span className="text-[11px] font-normal text-gray-300">/</span>
+                                                            <span className="text-[11px] font-normal text-gray-400">{issue.assignedAt}</span>
+                                                        </div>
+                                                        {issue.status !== 'resolved' && (
+                                                            <button
+                                                                onClick={() => setSelectedIssue(issue)}
+                                                                className="text-[13px] font-normal text-white bg-[#088395] hover:bg-[#066d7c] px-5 py-2 rounded-xl transition-all shadow-lg shadow-[#088395]/10"
+                                                            >
+                                                                Update Status
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
                             </div>
+
+                            {selectedIssue && (
+                                <StatusUpdateModal
+                                    issue={selectedIssue}
+                                    onUpdate={async (id, newStatus, notes) => {
+                                        try {
+                                            await issueAPI.updateStatus(id, newStatus)
+                                            setAssignedIssues(prev => prev.map(i => i.id === id ? { ...i, status: newStatus, notes } : i))
+                                            setSelectedIssue(null)
+                                        } catch (err) {
+                                            alert('Failed to update status')
+                                        }
+                                    }}
+                                    onClose={() => setSelectedIssue(null)}
+                                />
+                            )}
                         </div>
                     ) : (
                         <>
@@ -274,6 +408,61 @@ function ChartWrapper({ title, subtitle, children, icon }: { title: string; subt
             </div>
             <div className="w-full">
                 {children}
+            </div>
+        </div>
+    )
+}
+
+function StatusUpdateModal({ issue, onUpdate, onClose }: { issue: AssignedIssue; onUpdate: (id: string, s: Status, n?: string) => void; onClose: () => void }) {
+    const [notes, setNotes] = useState(issue.notes ?? '')
+    const next = statusConfig[issue.status].next
+    const nextLabel = statusConfig[issue.status].nextLabel
+
+    return (
+        <div className="fixed inset-0 bg-[#201F47]/20 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
+                    <div>
+                        <h3 className="font-normal text-[#201F47] text-[17px]">Update Status</h3>
+                        <p className="text-[12px] text-gray-400 mt-0.5 truncate max-w-[260px]">{issue.title}</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-300 hover:text-gray-500 transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="bg-[#F9F9FB] rounded-2xl p-4 border border-gray-50">
+                        <p className="text-[12px] text-gray-500 font-normal">Current: <span className={`font-semibold px-2 py-0.5 rounded-lg text-[10px] ml-1 uppercase tracking-wider ${statusConfig[issue.status].color}`}>{statusConfig[issue.status].label}</span></p>
+                        {next && <p className="text-[12px] text-gray-500 mt-2 font-normal">Next: <span className="font-medium text-[#201F47]">{statusConfig[next].label}</span></p>}
+                    </div>
+                    <div>
+                        <label className="block text-[12px] font-normal text-gray-500 mb-2 ml-1">Work Log / Progress Notes</label>
+                        <textarea
+                            rows={4}
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="Describe what you've done or any blockers you've encountered..."
+                            className="w-full px-4 py-3 text-[14px] font-normal border border-gray-100 rounded-2xl outline-none focus:border-[#088395] focus:ring-4 focus:ring-[#088395]/5 transition-all resize-none placeholder:text-gray-300"
+                        />
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={onClose} className="flex-1 py-3 text-[14px] font-normal text-gray-500 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">Discard</button>
+                        {next ? (
+                            <button
+                                onClick={() => onUpdate(issue.id, next, notes)}
+                                className="flex-1 py-3 text-[14px] font-normal text-white bg-[#088395] hover:bg-[#066d7c] rounded-2xl transition-all shadow-lg shadow-[#088395]/10"
+                            >
+                                {nextLabel}
+                            </button>
+                        ) : (
+                            <button disabled className="flex-1 py-3 text-[14px] font-normal text-gray-400 bg-gray-100 rounded-2xl cursor-not-allowed">
+                                Fully Resolved
+                            </button>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     )

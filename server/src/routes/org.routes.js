@@ -9,8 +9,10 @@ const {
   deleteOrganization,
   listOrgMembers,
   removeMember,
+  updateMember,
   listOrgCategories,
   createOrgCategory,
+  updateOrgCategory,
   deleteOrgCategory,
   listMyCategories,
   listActiveOrganizations,
@@ -44,8 +46,10 @@ router.get("/:orgId/categories", auth, listOrgCategories); // list categories
 
 // ── Org Editor+ only ────────────────────────────────────────────────────────
 router.post("/:orgId/categories", auth, createOrgCategory); // create category
+router.put("/:orgId/categories/:catId", auth, updateOrgCategory); // update category
 
 // ── Org Admin only ──────────────────────────────────────────────────────────
+router.put("/:orgId/members/:memberId", auth, updateMember);      // update member role
 router.delete("/:orgId/members/:memberId", auth, removeMember);     // remove member
 router.delete("/:orgId/categories/:catId", auth, deleteOrgCategory); // delete category
 

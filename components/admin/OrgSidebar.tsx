@@ -108,6 +108,7 @@ export default function OrgSidebar({ orgId, orgName, role }: OrgSidebarProps) {
                 <p className="px-3 pt-3 pb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Navigation</p>
                 {filteredNavItems.map((item) => {
                     const active = isActive(item.key)
+                    const label = (role === 'staff' && item.key === 'dashboard') ? 'Assignments' : item.label
                     return (
                         <Link
                             key={item.key}
@@ -120,7 +121,7 @@ export default function OrgSidebar({ orgId, orgName, role }: OrgSidebarProps) {
                             <span className={`transition-colors ${active ? 'text-teal-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
                                 {item.icon}
                             </span>
-                            {item.label}
+                            {label}
                             {active && (
                                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-teal-500" />
                             )}

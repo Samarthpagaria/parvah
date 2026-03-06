@@ -46,6 +46,8 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
     const [inviteRole, setInviteRole] = useState<Role>('read')
     const [inviteSent, setInviteSent] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editingRole, setEditingRole] = useState<Role | null>(null)
 
     useEffect(() => {
         setIsMounted(true)
@@ -75,21 +77,21 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
                     avatar: (m.admin_user?.full_name || '??').split(' ').map((n: any) => n[0]).join('')
                 }))
 
-                // Try to also load pending invites (optional)
+                // Try to also load all invites
                 let invitedMembers: Member[] = []
                 try {
                     const invitesRes = await invitationAPI.listPending(orgId)
-                    // Only show 'pending' invitations to avoid duplicates with already joined members
+                    // Show both pending and accepted invitations for tracking
                     invitedMembers = (invitesRes.invitations || [])
-                        .filter((i: any) => i.status === 'pending')
                         .map((i: any) => ({
                             id: i.id,
                             name: i.invitee_email.split('@')[0],
                             email: i.invitee_email,
                             role: i.role as Role,
                             joinedAt: new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
-                            status: 'invited',
-                            avatar: i.invitee_email.charAt(0).toUpperCase()
+                            status: i.status === 'accepted' ? 'active' : 'invited',
+                            avatar: i.invitee_email.charAt(0).toUpperCase(),
+                            inviteStatus: i.status // Extra field for status display
                         }))
                 } catch (err: any) {
                     console.error('[Members] invites fetch failed (non-critical):', err?.message)
@@ -136,6 +138,37 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
         }
     }
 
+    const handleDelete = async (member: Member) => {
+        if (!window.confirm(`Are you sure you want to ${member.status === 'invited' ? 'revoke the invitation for' : 'remove'} ${member.email}?`)) return
+
+        try {
+            if (member.status === 'invited') {
+                await invitationAPI.revoke(member.id)
+            } else {
+                await orgAPI.removeMember(orgId, member.id)
+            }
+            setMembers(prev => prev.filter(m => m.id !== member.id))
+        } catch (err: any) {
+            console.error('Failed to delete:', err)
+            alert(err?.message || 'Failed to delete member/invitation')
+        }
+    }
+
+    const handleSaveRole = async (member: Member) => {
+        if (!editingRole || editingRole === member.role) {
+            setEditingId(null)
+            return
+        }
+        try {
+            await orgAPI.updateMember(orgId, member.id, editingRole)
+            setMembers(prev => prev.map(m => m.id === member.id ? { ...m, role: editingRole } : m))
+            setEditingId(null)
+        } catch (err: any) {
+            console.error('Failed to update role:', err)
+            alert(err?.message || 'Failed to update role')
+        }
+    }
+
     const orgName = org?.name || 'Organization'
 
     return (
@@ -176,12 +209,6 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
                             <span className="text-[#201F47]">Members</span>
                         </div>
                         <div className="flex items-center gap-4 shrink-0">
-                            <button className="relative text-gray-400 hover:text-[#201F47] transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#F25A5A] rounded-full border-2 border-white" />
-                            </button>
                             <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">
                                 {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
                             </Link>
@@ -248,9 +275,22 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[11px] font-normal px-2.5 py-1 rounded-full whitespace-nowrap ${rc.bg} ${rc.text}`}>
-                                                        {rc.label}
-                                                    </span>
+                                                    {editingId === m.id ? (
+                                                        <select
+                                                            value={editingRole || m.role}
+                                                            onChange={(e) => setEditingRole(e.target.value as Role)}
+                                                            className="text-[11px] font-normal px-2 py-0.5 rounded-lg border border-gray-200 outline-none focus:border-[#088395] bg-white text-[#201F47]"
+                                                            autoFocus
+                                                        >
+                                                            {Object.entries(roleConfig).map(([role, cfg]) => (
+                                                                <option key={role} value={role}>{cfg.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <span className={`text-[11px] font-normal px-2.5 py-1 rounded-full whitespace-nowrap ${rc.bg} ${rc.text}`}>
+                                                            {rc.label}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     {m.status === 'invited' ? (
@@ -270,18 +310,53 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                                        {m.role !== 'owner' && (
-                                                            <button className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-[#F25A5A]/10 hover:text-[#F25A5A] transition-colors focus:outline-none focus:ring-2 focus:ring-[#F25A5A]/20">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                </svg>
-                                                            </button>
+                                                        {editingId === m.id ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleSaveRole(m)}
+                                                                    className="w-8 h-8 flex items-center justify-center rounded-full text-emerald-500 hover:bg-emerald-50 transition-colors"
+                                                                    title="Save Changes"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setEditingId(null)}
+                                                                    className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors"
+                                                                    title="Cancel"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                {m.role !== 'owner' && (
+                                                                    <button
+                                                                        onClick={() => handleDelete(m)}
+                                                                        className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-[#F25A5A]/10 hover:text-[#F25A5A] transition-colors focus:outline-none focus:ring-2 focus:ring-[#F25A5A]/20"
+                                                                        title={m.status === 'invited' ? 'Revoke Invite' : 'Remove Member'}
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                        </svg>
+                                                                    </button>
+                                                                )}
+                                                                {m.status === 'active' && m.role !== 'owner' && (
+                                                                    <button
+                                                                        onClick={() => { setEditingId(m.id); setEditingRole(m.role); }}
+                                                                        className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-[#201F47] transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                                                        title="Edit Role"
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                )}
+                                                            </>
                                                         )}
-                                                        <button className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-[#201F47] transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200">
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                            </svg>
-                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>

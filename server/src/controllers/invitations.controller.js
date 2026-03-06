@@ -212,10 +212,10 @@ const listInvites = async (req, res) => {
     const senderRole = await getOrgRole(req.user.id, orgId);
     const superAdmin = await isSuperAdmin(req.user.id);
 
-    if (!superAdmin && !["owner", "staff"].includes(senderRole)) {
+    if (!superAdmin && !["owner", "edit", "staff"].includes(senderRole)) {
       return res
         .status(403)
-        .json({ error: "Access denied. Org owner/staff required." });
+        .json({ error: "Access denied. Org owner/edit/staff required." });
     }
 
     const { data, error } = await supabaseAdmin
@@ -262,8 +262,8 @@ const revokeInvite = async (req, res) => {
     const senderRole = await getOrgRole(req.user.id, invitation.org_id);
     const superAdmin = await isSuperAdmin(req.user.id);
 
-    if (!superAdmin && !["owner", "staff"].includes(senderRole)) {
-      return res.status(403).json({ error: "Access denied. Org owner/staff required." });
+    if (!superAdmin && !["owner", "edit", "staff"].includes(senderRole)) {
+      return res.status(403).json({ error: "Access denied. Org owner/edit/staff required." });
     }
 
     if (invitation.status !== "pending") {
@@ -274,7 +274,7 @@ const revokeInvite = async (req, res) => {
 
     const { error } = await supabaseAdmin
       .from("admin_invitations")
-      .update({ status: "revoked" })
+      .delete()
       .eq("id", inviteId);
 
     if (error) throw error;
@@ -382,28 +382,37 @@ const acceptInvite = async (req, res) => {
 
     if (adminError) throw adminError;
 
-    // Check if user is already an active member to avoid duplicates
-    const { data: existingMember } = await supabaseAdmin
+    // Link the user to the organization (Manual Upsert to handle reactivation without constraint errors)
+    const { data: existingRecord } = await supabaseAdmin
       .from("org_admin_members")
       .select("id")
       .eq("org_id", invitation.org_id)
       .eq("admin_user_id", userId)
-      .eq("is_active", true)
       .maybeSingle();
 
-    if (!existingMember) {
-      const { error: memberError } = await supabaseAdmin
+    if (existingRecord) {
+      const { error: updateError } = await supabaseAdmin
+        .from("org_admin_members")
+        .update({
+          role: invitation.role,
+          invited_by: invitation.invited_by,
+          is_active: true,
+          joined_at: new Date().toISOString(),
+        })
+        .eq("id", existingRecord.id);
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await supabaseAdmin
         .from("org_admin_members")
         .insert({
           org_id: invitation.org_id,
           admin_user_id: userId,
           role: invitation.role,
           invited_by: invitation.invited_by,
+          is_active: true,
+          joined_at: new Date().toISOString(),
         });
-
-      if (memberError && memberError.code !== "23505") throw memberError;
-    } else {
-      console.log(`[acceptInvite] User ${userId} already active in org ${invitation.org_id}. Skipping insert.`);
+      if (insertError) throw insertError;
     }
 
     await supabaseAdmin
@@ -471,29 +480,57 @@ const acceptInviteForMember = async (req, res) => {
       return res.status(400).json({ error: "Invitation has expired." });
     }
 
-    // Check if already a member to avoid duplicates
-    const { data: existingMember } = await supabaseAdmin
+    // SELF-HEALING: Ensure user has a record in admin_users
+    // This handles users who were Public Users and are now joining an Org as Admin
+    const { data: adminProfile } = await supabaseAdmin
+      .from("admin_users")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!adminProfile) {
+      console.log(`[acceptInviteForMember:SYNC] Creating admin_users record for ${userId}`);
+      await supabaseAdmin
+        .from("admin_users")
+        .insert({
+          id: userId,
+          email: userEmail,
+          full_name: req.user.user_metadata?.full_name || userEmail.split('@')[0],
+          is_active: true,
+        });
+    }
+
+    // Link the user to the organization (Manual Upsert to handle reactivation without constraint errors)
+    const { data: existingRecord } = await supabaseAdmin
       .from("org_admin_members")
       .select("id")
       .eq("org_id", invitation.org_id)
       .eq("admin_user_id", userId)
-      .eq("is_active", true)
       .maybeSingle();
 
-    if (!existingMember) {
-      // Link the user to the organization
-      const { error: memberError } = await supabaseAdmin
+    if (existingRecord) {
+      const { error: updateError } = await supabaseAdmin
+        .from("org_admin_members")
+        .update({
+          role: invitation.role,
+          invited_by: invitation.invited_by,
+          is_active: true,
+          joined_at: new Date().toISOString(),
+        })
+        .eq("id", existingRecord.id);
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await supabaseAdmin
         .from("org_admin_members")
         .insert({
           org_id: invitation.org_id,
           admin_user_id: userId,
           role: invitation.role,
           invited_by: invitation.invited_by,
+          is_active: true,
+          joined_at: new Date().toISOString(),
         });
-
-      if (memberError && memberError.code !== "23505") throw memberError;
-    } else {
-      console.log(`[acceptInviteForMember] User ${userId} already active in org ${invitation.org_id}. Skipping insert.`);
+      if (insertError) throw insertError;
     }
 
     // Mark as accepted

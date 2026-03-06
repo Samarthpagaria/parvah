@@ -24,6 +24,10 @@ export default function CategoriesPage({ params }: { params: Promise<{ orgId: st
     const [newDesc, setNewDesc] = useState('')
     const [newColor, setNewColor] = useState('#088395')
     const [isMounted, setIsMounted] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editName, setEditName] = useState('')
+    const [editDesc, setEditDesc] = useState('')
+    const [editColor, setEditColor] = useState('')
 
     useEffect(() => {
         setIsMounted(true)
@@ -82,11 +86,33 @@ export default function CategoriesPage({ params }: { params: Promise<{ orgId: st
     }
 
     const handleDelete = async (id: string) => {
+        if (!window.confirm('Are you sure you want to delete this category?')) return
         try {
             await orgAPI.deleteCategory(orgId, id)
             setCategories(prev => prev.filter(c => c.id !== id))
         } catch (err) {
             console.error('Failed to delete category:', err)
+        }
+    }
+
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingId) return
+        try {
+            const res = await orgAPI.updateCategory(orgId, editingId, {
+                name: editName,
+                color: editColor,
+                description: editDesc
+            })
+            setCategories(prev => prev.map(c => c.id === editingId ? {
+                ...c,
+                name: res.category.name,
+                color: res.category.color,
+                description: res.category.description
+            } : c))
+            setEditingId(null)
+        } catch (err) {
+            console.error('Failed to update category:', err)
         }
     }
 
@@ -130,12 +156,6 @@ export default function CategoriesPage({ params }: { params: Promise<{ orgId: st
                             <span className="text-[#201F47]">Categories</span>
                         </div>
                         <div className="flex items-center gap-4 shrink-0">
-                            <button className="relative text-gray-400 hover:text-[#201F47] transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#F25A5A] rounded-full border-2 border-white" />
-                            </button>
                             <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">
                                 {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
                             </Link>
@@ -229,39 +249,98 @@ export default function CategoriesPage({ params }: { params: Promise<{ orgId: st
                                 className={`group bg-white rounded-[20px] border border-gray-100 p-5 flex flex-col hover:shadow-md hover:shadow-gray-200/40 transition-all duration-300 hover:-translate-y-0.5 ${isMounted ? 'animate-up' : ''}`}
                                 style={{ animationDelay: `${0.15 + idx * 0.05}s` }}
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-gray-100 bg-gray-50 transition-colors group-hover:bg-white" style={{ color: cat.color }}>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                    </div>
-                                    <button
-                                        onClick={() => handleDelete(cat.id)}
-                                        className="text-gray-300 hover:text-[#F25A5A] hover:bg-[#F25A5A]/10 w-7 h-7 flex items-center justify-center rounded-full transition-all opacity-0 group-hover:opacity-100 shrink-0"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-                                </div>
+                                {editingId === cat.id ? (
+                                    <form onSubmit={handleUpdate} className="space-y-4">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <input
+                                                    required
+                                                    value={editName}
+                                                    onChange={e => setEditName(e.target.value)}
+                                                    className="w-full px-3 py-1.5 text-[13px] font-normal border border-gray-200 rounded-lg focus:outline-none focus:border-[#088395] bg-gray-50/50"
+                                                    placeholder="Category Name"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div>
+                                                <textarea
+                                                    value={editDesc}
+                                                    onChange={e => setEditDesc(e.target.value)}
+                                                    className="w-full px-3 py-1.5 text-[13px] font-normal border border-gray-200 rounded-lg focus:outline-none focus:border-[#088395] bg-gray-50/50 min-h-[60px] resize-none"
+                                                    placeholder="Description"
+                                                />
+                                            </div>
+                                            <div className="flex gap-1.5 flex-wrap">
+                                                {colorOptions.map(c => (
+                                                    <button
+                                                        key={c}
+                                                        type="button"
+                                                        onClick={() => setEditColor(c)}
+                                                        className={`w-5 h-5 rounded-full border border-white transition-all ${editColor === c ? 'ring-2 ring-offset-1 ring-[#201F47]' : 'hover:scale-105'}`}
+                                                        style={{ backgroundColor: c }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <button type="button" onClick={() => setEditingId(null)} className="text-[12px] font-normal text-gray-500 hover:text-[#F25A5A] transition-colors">Cancel</button>
+                                            <button type="submit" className="px-3.5 py-1.5 text-[12px] font-normal text-white bg-[#088395] rounded-lg">Save</button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <>
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-gray-100 bg-gray-50 transition-colors group-hover:bg-white" style={{ color: cat.color }}>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingId(cat.id)
+                                                        setEditName(cat.name)
+                                                        setEditDesc(cat.description || '')
+                                                        setEditColor(cat.color)
+                                                    }}
+                                                    className="text-gray-300 hover:text-[#088395] hover:bg-[#088395]/10 w-7 h-7 flex items-center justify-center rounded-full transition-all opacity-0 group-hover:opacity-100 shrink-0"
+                                                    title="Edit Category"
+                                                >
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(cat.id)}
+                                                    className="text-gray-300 hover:text-[#F25A5A] hover:bg-[#F25A5A]/10 w-7 h-7 flex items-center justify-center rounded-full transition-all opacity-0 group-hover:opacity-100 shrink-0"
+                                                    title="Delete Category"
+                                                >
+                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
 
-                                <div className="flex-1 mb-[14px]">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-                                        <h3 className="text-[15px] leading-tight font-normal text-[#201F47] group-hover:text-[#088395] transition-colors truncate">
-                                            {cat.name}
-                                        </h3>
-                                    </div>
-                                    <p className="text-[12px] leading-relaxed font-normal text-[#94a3b8] line-clamp-2 min-h-[36px]">
-                                        {cat.description || "No description provided"}
-                                    </p>
-                                </div>
+                                        <div className="flex-1 mb-[14px]">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                                <h3 className="text-[15px] leading-tight font-normal text-[#201F47] group-hover:text-[#088395] transition-colors truncate">
+                                                    {cat.name}
+                                                </h3>
+                                            </div>
+                                            <p className="text-[12px] leading-relaxed font-normal text-[#94a3b8] line-clamp-2 min-h-[36px]">
+                                                {cat.description || "No description provided"}
+                                            </p>
+                                        </div>
 
-                                <div className="pt-3.5 border-t border-gray-50 flex items-center">
-                                    <span className="text-[11px] font-normal text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full whitespace-nowrap border border-gray-100">
-                                        {cat.issueCount} {cat.issueCount === 1 ? 'Associated Issue' : 'Associated Issues'}
-                                    </span>
-                                </div>
+                                        <div className="pt-3.5 border-t border-gray-50 flex items-center">
+                                            <span className="text-[11px] font-normal text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full whitespace-nowrap border border-gray-100">
+                                                {cat.issueCount} {cat.issueCount === 1 ? 'Associated Issue' : 'Associated Issues'}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </div>

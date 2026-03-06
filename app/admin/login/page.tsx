@@ -49,13 +49,8 @@ export default function AdminLoginPage() {
 
         // We'll update this to be more precise if you have a "get my memberships" endpoint.
         // For now, I'll stick to the user's suggestion but using real login.
-        if (form.email.toLowerCase().includes('staff')) {
-          console.log('Redirecting to staff dashboard')
-          window.location.href = '/staff/dashboard'
-        } else {
-          console.log('Redirecting to admin organizations')
-          window.location.href = '/admin/organizations'
-        }
+        console.log('Redirecting to organizations hub')
+        window.location.href = '/admin/organizations'
       } else {
         if (!form.fullName || !form.email || !form.password || !form.confirmPassword)
           throw new Error('Please fill in all fields')

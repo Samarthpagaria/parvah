@@ -204,11 +204,23 @@ export const orgAPI = {
       method: "DELETE",
     }),
 
+  // Update member role
+  updateMember: (orgId, memberId, role) =>
+    apiFetch(`/organizations/${orgId}/members/${memberId}`, {
+      method: "PUT",
+      body: JSON.stringify({ role }),
+    }),
+
   // Categories
   listCategories: (orgId) => apiFetch(`/organizations/${orgId}/categories`),
   createCategory: (orgId, catData) =>
     apiFetch(`/organizations/${orgId}/categories`, {
       method: "POST",
+      body: JSON.stringify(catData),
+    }),
+  updateCategory: (orgId, catId, catData) =>
+    apiFetch(`/organizations/${orgId}/categories/${catId}`, {
+      method: "PUT",
       body: JSON.stringify(catData),
     }),
   deleteCategory: (orgId, catId) =>
