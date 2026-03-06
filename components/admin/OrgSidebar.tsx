@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 interface OrgSidebarProps {
     orgId: string
     orgName: string
+    role?: 'owner' | 'edit' | 'read' | 'staff'
 }
 
 const navItems = [
@@ -62,8 +63,18 @@ const navItems = [
     },
 ]
 
-export default function OrgSidebar({ orgId, orgName }: OrgSidebarProps) {
+export default function OrgSidebar({ orgId, orgName, role }: OrgSidebarProps) {
     const pathname = usePathname()
+
+    const filteredNavItems = navItems.filter(item => {
+        if (role === 'staff') {
+            return ['dashboard', 'kanban'].includes(item.key)
+        }
+        if (role === 'read') {
+            return ['dashboard', 'kanban', 'categories'].includes(item.key)
+        }
+        return true
+    })
 
     const isActive = (key: string) => {
         if (key === 'dashboard') return pathname.includes('/dashboard')
@@ -95,7 +106,7 @@ export default function OrgSidebar({ orgId, orgName }: OrgSidebarProps) {
             {/* Nav */}
             <nav className="flex-1 p-3 space-y-0.5">
                 <p className="px-3 pt-3 pb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Navigation</p>
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const active = isActive(item.key)
                     return (
                         <Link

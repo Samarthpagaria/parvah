@@ -112,14 +112,9 @@ const listOrganizations = async (req, res) => {
 const createOrganization = async (req, res) => {
   try {
     const userId = req.user.id;
-    const superAdmin = await isSuperAdmin(userId);
-
-    if (!superAdmin) {
-      console.warn(`[createOrganization:DENIED] user=${userId} - Not superadmin`);
-      return res
-        .status(403)
-        .json({ error: "Access denied. Super Admin only." });
-    }
+    // DECENTRALIZED: Any authenticated admin_user can create an organization
+    // const superAdmin = await isSuperAdmin(userId);
+    // if (!superAdmin) { ... }
 
     const { name, slug, description, industry, logo_url, join_code } = req.body;
     console.log(`[createOrganization:PAYLOAD] name=${name} slug=${slug} join_code=${join_code}`);
@@ -155,7 +150,7 @@ const createOrganization = async (req, res) => {
 
     console.log(`[createOrganization:SUCCESS] org=${org.id} name=${org.name}`);
 
-    // Step 2 — Link the Super Admin as owner in org_admin_members
+    // Step 2 — Link the creator as 'owner' in org_admin_members
     const { error: memberError } = await supabaseAdmin
       .from("org_admin_members")
       .insert({
@@ -220,7 +215,7 @@ const getOrganization = async (req, res) => {
       return res.status(404).json({ error: "Organization not found" });
     }
 
-    res.json({ organization: data });
+    res.json({ organization: data, my_role: role });
   } catch (err) {
     console.error("getOrganization error:", err.message);
     res.status(500).json({ error: "Internal server error" });
@@ -273,11 +268,13 @@ const deleteOrganization = async (req, res) => {
     const { orgId } = req.params;
     const userId = req.user.id;
 
+    const role = await getOrgRole(userId, orgId);
     const superAdmin = await isSuperAdmin(userId);
-    if (!superAdmin) {
+
+    if (role !== "owner" && !superAdmin) {
       return res
         .status(403)
-        .json({ error: "Access denied. Super Admin only." });
+        .json({ error: "Access denied. Org owner only (or Super Admin)." });
     }
 
     console.log(`[deleteOrganization] org=${orgId} by=${userId}`);
@@ -336,7 +333,18 @@ const listOrgMembers = async (req, res) => {
 
     if (error) throw error;
 
-    res.json({ members: data });
+    // Post-process to ensure no "Unknown" fields reach the frontend if possible
+    const sanitizedMembers = (data || []).map(m => ({
+      ...m,
+      admin_user: m.admin_user || {
+        id: m.admin_user_id,
+        full_name: "Unknown Admin",
+        email: "unknown@parvah.gov",
+        avatar_url: null
+      }
+    }));
+
+    res.json({ members: sanitizedMembers });
   } catch (err) {
     console.error("listOrgMembers error:", err.message);
     res.status(500).json({ error: "Internal server error" });

@@ -145,6 +145,12 @@ export const authAPI = {
     }),
 
   // Sign out
+  registerAdmin: async (data) => {
+    return apiFetch('/auth/admin/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, 'admin');
+  },
   logout: async () => {
     try {
       await apiFetch("/auth/logout", { method: "POST" });
@@ -226,7 +232,7 @@ export const orgAPI = {
  * --------------------
  */
 
-export const inviteAPI = {
+export const invitationAPI = {
   // Send invite
   send: (orgId, email, role) =>
     apiFetch("/invitations", {
@@ -238,11 +244,15 @@ export const inviteAPI = {
   listPending: (orgId) => apiFetch(`/invitations/${orgId}`),
 
   // Revoke invite
-  revoke: (inviteId) =>
-    apiFetch(`/invitations/${inviteId}`, {
-      method: "DELETE",
-    }),
-
+  revoke: async (inviteId) => {
+    return apiFetch(`/invitations/${inviteId}`, { method: 'DELETE' }, 'admin');
+  },
+  getMyInvites: async () => {
+    return apiFetch('/invitations/my-invites', { method: 'GET' }, 'admin');
+  },
+  acceptMember: async (inviteId) => {
+    return apiFetch(`/invitations/accept-member/${inviteId}`, { method: 'POST' }, 'admin');
+  },
   // Verify token (Public page)
   verifyToken: (token) => apiFetch(`/invitations/verify/${token}`),
 

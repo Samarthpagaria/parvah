@@ -1,6 +1,7 @@
 const { supabaseAdmin } = require("../config/db");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
+const { sendNotification } = require("../services/notification.service");
 
 // ── Helper: Generate signature ─────────────────────────────
 const signToken = (inviteId, rawToken) => {
@@ -69,9 +70,57 @@ const sendInvite = async (req, res) => {
     const senderRole = await getOrgRole(req.user.id, org_id);
     const superAdmin = await isSuperAdmin(req.user.id);
 
-    if (!superAdmin && !["owner", "staff"].includes(senderRole)) {
+    if (!superAdmin && !["owner", "edit"].includes(senderRole)) {
       console.log(`[sendInvite:FORBIDDEN] user=${req.user.id} role=${senderRole} super=${superAdmin}`);
-      return res.status(403).json({ error: "Access denied. Org owner/staff only." });
+      return res.status(403).json({ error: "Access denied. Org owner/edit required." });
+    }
+
+    const allowedTargetRoles = ["edit", "view", "staff"];
+    if (!allowedTargetRoles.includes(role)) {
+      return res.status(400).json({ error: `Invalid role. Allowed roles are: ${allowedTargetRoles.join(", ")}` });
+    }
+
+    // DUPLICATE CHECK: Check if email is already a member
+    const { data: existingMember } = await supabaseAdmin
+      .from("org_admin_members")
+      .select("id")
+      .eq("org_id", org_id)
+      .eq("is_active", true)
+      .filter("admin_user:admin_users!admin_user_id(email)", "eq", invitee_email)
+      .maybeSingle();
+
+    // Actually, join filtering in Supabase is tricky. Let's do a direct check via admin_users first.
+    const { data: targetUser } = await supabaseAdmin
+      .from("admin_users")
+      .select("id")
+      .eq("email", invitee_email)
+      .maybeSingle();
+
+    if (targetUser) {
+      const { data: memberRecord } = await supabaseAdmin
+        .from("org_admin_members")
+        .select("id")
+        .eq("org_id", org_id)
+        .eq("admin_user_id", targetUser.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (memberRecord) {
+        return res.status(400).json({ error: "This user is already a member of the organization." });
+      }
+    }
+
+    // PENDING CHECK: Check if a pending invite already exists
+    const { data: pendingInvite } = await supabaseAdmin
+      .from("admin_invitations")
+      .select("id")
+      .eq("org_id", org_id)
+      .eq("invitee_email", invitee_email)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (pendingInvite) {
+      return res.status(400).json({ error: "A pending invitation already exists for this email." });
     }
 
     const rawToken = crypto.randomUUID();
@@ -102,6 +151,31 @@ const sendInvite = async (req, res) => {
         return res.status(400).json({ error: "Invalid organization ID or sender ID." });
       }
       throw error;
+    }
+
+    // Smart Notification: If invitee exists as an admin_user, send in-app notification
+    const { data: existingAdmin } = await supabaseAdmin
+      .from("admin_users")
+      .select("id")
+      .eq("email", invitee_email)
+      .single();
+
+    if (existingAdmin) {
+      const { data: orgData } = await supabaseAdmin
+        .from("organizations")
+        .select("name")
+        .eq("id", org_id)
+        .single();
+
+      await sendNotification({
+        recipientId: existingAdmin.id,
+        recipientType: 'admin_user',
+        orgId: org_id,
+        type: 'ORG_INVITE',
+        title: 'New Organization Invitation',
+        message: `You have been invited to join "${orgData?.name || 'an organization'}" as ${role}.`,
+      });
+      console.log(`[sendInvite:NOTIFY] Sent in-app notification to existing admin ${existingAdmin.id}`);
     }
 
     const signature = signToken(invitation.id, rawToken);
@@ -308,16 +382,29 @@ const acceptInvite = async (req, res) => {
 
     if (adminError) throw adminError;
 
-    const { error: memberError } = await supabaseAdmin
+    // Check if user is already an active member to avoid duplicates
+    const { data: existingMember } = await supabaseAdmin
       .from("org_admin_members")
-      .insert({
-        org_id: invitation.org_id,
-        admin_user_id: userId,
-        role: invitation.role,
-        invited_by: invitation.invited_by,
-      });
+      .select("id")
+      .eq("org_id", invitation.org_id)
+      .eq("admin_user_id", userId)
+      .eq("is_active", true)
+      .maybeSingle();
 
-    if (memberError && memberError.code !== "23505") throw memberError;
+    if (!existingMember) {
+      const { error: memberError } = await supabaseAdmin
+        .from("org_admin_members")
+        .insert({
+          org_id: invitation.org_id,
+          admin_user_id: userId,
+          role: invitation.role,
+          invited_by: invitation.invited_by,
+        });
+
+      if (memberError && memberError.code !== "23505") throw memberError;
+    } else {
+      console.log(`[acceptInvite] User ${userId} already active in org ${invitation.org_id}. Skipping insert.`);
+    }
 
     await supabaseAdmin
       .from("admin_invitations")
@@ -331,10 +418,103 @@ const acceptInvite = async (req, res) => {
   }
 };
 
+// ── Get My Pending Invites ────────────────────────────────
+const getMyInvites = async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+
+    const { data, error } = await supabaseAdmin
+      .from("admin_invitations")
+      .select(`
+        id,
+        invitee_email,
+        role,
+        status,
+        expires_at,
+        created_at,
+        organization:organizations(id, name, slug, logo_url),
+        invited_by_user:admin_users(id, full_name, email)
+      `)
+      .eq("invitee_email", userEmail)
+      .eq("status", "pending")
+      .gt("expires_at", new Date().toISOString());
+
+    if (error) throw error;
+
+    res.json({ invitations: data });
+  } catch (err) {
+    console.error("getMyInvites error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ── Accept Invite (Internal) ────────────────────────────────
+const acceptInviteForMember = async (req, res) => {
+  try {
+    const { inviteId } = req.params;
+    const userId = req.user.id;
+    const userEmail = req.user.email;
+
+    const { data: invitation, error: fetchError } = await supabaseAdmin
+      .from("admin_invitations")
+      .select("*")
+      .eq("id", inviteId)
+      .eq("invitee_email", userEmail)
+      .eq("status", "pending")
+      .single();
+
+    if (fetchError || !invitation) {
+      return res.status(404).json({ error: "Invitation not found or not for you." });
+    }
+
+    if (new Date(invitation.expires_at) < new Date()) {
+      return res.status(400).json({ error: "Invitation has expired." });
+    }
+
+    // Check if already a member to avoid duplicates
+    const { data: existingMember } = await supabaseAdmin
+      .from("org_admin_members")
+      .select("id")
+      .eq("org_id", invitation.org_id)
+      .eq("admin_user_id", userId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!existingMember) {
+      // Link the user to the organization
+      const { error: memberError } = await supabaseAdmin
+        .from("org_admin_members")
+        .insert({
+          org_id: invitation.org_id,
+          admin_user_id: userId,
+          role: invitation.role,
+          invited_by: invitation.invited_by,
+        });
+
+      if (memberError && memberError.code !== "23505") throw memberError;
+    } else {
+      console.log(`[acceptInviteForMember] User ${userId} already active in org ${invitation.org_id}. Skipping insert.`);
+    }
+
+    // Mark as accepted
+    await supabaseAdmin
+      .from("admin_invitations")
+      .update({ status: "accepted", accepted_at: new Date().toISOString() })
+      .eq("id", inviteId);
+
+    res.json({ message: "Successfully joined the organization!" });
+  } catch (err) {
+    console.error("acceptInviteForMember error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   sendInvite,
   listInvites,
   revokeInvite,
   verifyToken,
   acceptInvite,
+  getMyInvites,
+  acceptInviteForMember,
 };

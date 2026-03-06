@@ -61,9 +61,15 @@ export default function AdminLoginPage() {
           throw new Error('Please fill in all fields')
         if (form.password !== form.confirmPassword) throw new Error('Passwords do not match')
 
-        // Registration for admin is usually via invite, but if open:
-        // (Assuming you have an admin register endpoint or it's handled differently)
-        setError('Admin registration is via invitation only. Please contact your administrator.')
+        await authAPI.registerAdmin({
+          full_name: form.fullName,
+          email: form.email,
+          password: form.password,
+        })
+
+        // Auto-login after registration
+        await authAPI.loginAdmin(form.email, form.password)
+        window.location.href = '/admin/organizations'
       }
     } catch (err: any) {
       setError(err.message || 'Login failed')
