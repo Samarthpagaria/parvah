@@ -48,7 +48,19 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                     issueAPI.getActivity(issueId),
                     issueAPI.getComments(issueId)
                 ])
-                setIssue(details.issue)
+                
+                // Map DB schema to frontend expected schema
+                const dbIssue = details.issue || {}
+                const mappedIssue = {
+                    ...dbIssue,
+                    category: dbIssue.issue_categories?.name || 'General',
+                    location: dbIssue.address || 'Location not specified',
+                    submittedAt: new Date(dbIssue.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+                    assignedTo: dbIssue.admin_users?.full_name || null,
+                    activity: act.activity || [],
+                }
+                
+                setIssue(mappedIssue)
                 setActivity(act.activity || [])
                 setComments(comms.comments || [])
             } catch (err) {
@@ -86,15 +98,21 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
     const s = statusConfig[issue.status as IssueStatus] || statusConfig['open']
     const pc = priorityConfig[issue.priority] ?? priorityConfig['Medium']
 
-    const handleComment = (e: React.FormEvent) => {
+    const handleComment = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!comment.trim()) return
         setSubmitting(true)
-        setTimeout(() => {
-            setComments(prev => [{ text: comment, time: 'Just now' }, ...prev])
-            setComment('')
+        try {
+            const res = await issueAPI.postComment(issueId, comment)
+            if (res.comment) {
+                setComments(prev => [res.comment, ...prev])
+                setComment('')
+            }
+        } catch (err) {
+            console.error('Failed to post comment', err)
+        } finally {
             setSubmitting(false)
-        }, 500)
+        }
     }
 
     const statusSteps: IssueStatus[] = ['open', 'in-progress', 'review', 'resolved']
@@ -189,7 +207,7 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                         <div className={`bg-white rounded-[24px] border border-gray-100 overflow-hidden ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.15s' }}>
                             <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                                 <p className="text-[11px] font-normal text-gray-400 uppercase tracking-wider">Activity Log</p>
-                                <span className="text-[11px] font-normal text-gray-400">{issue.activity.length + comments.length} events</span>
+                                <span className="text-[11px] font-normal text-gray-400">{(issue.activity?.length || 0) + (comments?.length || 0)} events</span>
                             </div>
                             <div className="p-5 space-y-1">
                                 {/* User comments first */}
