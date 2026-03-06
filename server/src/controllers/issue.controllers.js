@@ -166,7 +166,7 @@ exports.createIssue = async (req, res) => {
         // Only public users can submit issues
         const { data: pubUser } = await supabaseAdmin
             .from('public_users')
-            .select('id, org_id')
+            .select('id')
             .eq('id', userId)
             .single();
 
@@ -175,12 +175,8 @@ exports.createIssue = async (req, res) => {
             return res.status(403).json({ error: 'Only public users can submit issues.' });
         }
 
-        const org_id = pubUser.org_id;
-        if (!org_id) {
-            return res.status(400).json({ error: 'Your account is not linked to any organization. Please contact support.' });
-        }
-
         let {
+            org_id,
             category_id,
             title,
             description,
@@ -191,32 +187,44 @@ exports.createIssue = async (req, res) => {
             is_public = true,
         } = req.body;
 
+        // org_id must be provided in the request body
+        if (!org_id) {
+            return res.status(400).json({ error: 'Please select an organization for this issue.' });
+        }
+
+        // Validate the org exists and is active
+        const { data: org, error: orgError } = await supabaseAdmin
+            .from('organizations')
+            .select('id, name')
+            .eq('id', org_id)
+            .eq('is_active', true)
+            .single();
+
+        if (orgError || !org) {
+            return res.status(400).json({ error: 'Selected organization is not valid or inactive.' });
+        }
+
         if (!title || title.length < 5)
             return res.status(400).json({ error: 'Title must be at least 5 characters.' });
         if (!description || description.length < 10)
             return res.status(400).json({ error: 'Description must be at least 10 characters.' });
 
-        // Map category string to ID if needed
+        // Resolve and validate category — must belong to the selected org
         let resolvedCategoryId = null;
         if (category_id) {
-            console.log(`[createIssue:RESOLVE_CAT] input=${category_id}`);
+            console.log(`[createIssue:RESOLVE_CAT] input=${category_id} org=${org_id}`);
             const { data: cat } = await supabaseAdmin
                 .from('issue_categories')
                 .select('id')
+                .eq('org_id', org_id)
                 .or(`id.eq.${category_id},name.eq.${category_id}`)
+                .eq('is_active', true)
                 .single();
 
             if (cat) {
                 resolvedCategoryId = cat.id;
-            } else if (category_id.length > 3) {
-                // If it looks like a name, create it
-                console.log(`[createIssue:NEW_CAT] name=${category_id} org=${org_id}`);
-                const { data: newCat } = await supabaseAdmin
-                    .from('issue_categories')
-                    .insert({ name: category_id, org_id })
-                    .select()
-                    .single();
-                if (newCat) resolvedCategoryId = newCat.id;
+            } else {
+                return res.status(400).json({ error: 'Selected category does not belong to the chosen organization.' });
             }
         }
 

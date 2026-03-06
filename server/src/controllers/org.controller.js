@@ -507,6 +507,51 @@ const listMyCategories = async (req, res) => {
   }
 };
 
+// ── List Active Organizations (for Public Users — issue form) ────────────
+// GET /api/organizations/public/list
+// Access: Any authenticated user (public or admin)
+const listActiveOrganizations = async (req, res) => {
+  try {
+    console.log(`[listActiveOrganizations] Fetching all active orgs`);
+    const { data: orgs, error } = await supabaseAdmin
+      .from('organizations')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+
+    if (error) throw error;
+
+    res.json({ organizations: orgs || [] });
+  } catch (err) {
+    console.error('listActiveOrganizations error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// ── List Categories By Org (for Public Users — issue form) ─────────────
+// GET /api/organizations/public/:orgId/categories
+// Access: Any authenticated user (public or admin)
+const listCategoriesByOrg = async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    console.log(`[listCategoriesByOrg] org=${orgId}`);
+
+    const { data: categories, error } = await supabaseAdmin
+      .from('issue_categories')
+      .select('id, name, color, icon')
+      .eq('org_id', orgId)
+      .eq('is_active', true)
+      .order('name');
+
+    if (error) throw error;
+
+    res.json({ categories: categories || [] });
+  } catch (err) {
+    console.error('listCategoriesByOrg error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   listOrganizations,
   createOrganization,
@@ -519,4 +564,6 @@ module.exports = {
   createOrgCategory,
   deleteOrgCategory,
   listMyCategories,
+  listActiveOrganizations,
+  listCategoriesByOrg,
 };

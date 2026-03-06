@@ -186,6 +186,12 @@ export const orgAPI = {
 
   // Categories for the current public user's organization (no orgId needed)
   listMyCategories: () => apiFetch('/organizations/categories/mine'),
+
+  // All active organizations — for issue form org dropdown (public users)
+  listActive: () => apiFetch('/organizations/public/list'),
+
+  // Categories belonging to a specific org — filtered for the issue form
+  listCategoriesByOrg: (orgId) => apiFetch(`/organizations/public/${orgId}/categories`),
 };
 
 /**
