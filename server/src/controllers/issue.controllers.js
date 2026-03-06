@@ -164,15 +164,27 @@ exports.createIssue = async (req, res) => {
     const userId = req.user.id;
 
     // Only public users can submit issues
-    const pubUser = await isPublicUser(userId);
+    const { data: pubUser } = await supabaseAdmin
+      .from("public_users")
+      .select("id, org_id")
+      .eq("id", userId)
+      .single();
+
     if (!pubUser) {
       return res
         .status(403)
         .json({ error: "Only public users can submit issues." });
     }
 
+    const org_id = pubUser.org_id;
+    if (!org_id) {
+      return res.status(400).json({
+        error:
+          "Your account is not linked to any organization. Please contact support.",
+      });
+    }
+
     const {
-      org_id,
       category_id,
       title,
       description,
@@ -182,8 +194,6 @@ exports.createIssue = async (req, res) => {
       address,
       is_public = true,
     } = req.body;
-
-    if (!org_id) return res.status(400).json({ error: "org_id is required." });
     if (!title || title.length < 5)
       return res
         .status(400)
@@ -278,7 +288,7 @@ exports.getIssueById = async (req, res) => {
     const { issueId } = req.params;
     const userId = req.user.id;
 
-    const { data: issue, error } = await supabaseAdmin
+    const { data: issue, error: fetchErr } = await supabaseAdmin
       .from("issues")
       .select(
         `*, 
