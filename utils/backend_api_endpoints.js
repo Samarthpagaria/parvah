@@ -308,7 +308,18 @@ export const issueAPI = {
       method: "POST",
       body: JSON.stringify({ content }),
     }),
+
+  // Get attachments for an issue
+  getAttachments: (issueId) => apiFetch(`/issues/${issueId}/attachments`),
+
+  // Register an uploaded file attachment (after direct storage upload)
+  registerAttachment: (issueId, attachmentData) =>
+    apiFetch(`/issues/${issueId}/attachments`, {
+      method: "POST",
+      body: JSON.stringify(attachmentData),
+    }),
 };
+
 
 /**
  * 📊 ANALYTICS MODULE
