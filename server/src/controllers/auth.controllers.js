@@ -130,9 +130,11 @@ const loginPublicUser = async (req, res) => {
 
 // Public User Register
 // POST /api/auth/public/register
+// Users register with name, email, password, phone only.
+// Organisation is selected when raising an issue — NOT at registration.
 const registerPublicUser = async (req, res) => {
   try {
-    const { email, password, full_name, phone, org_code } = req.body;
+    const { email, password, full_name, phone } = req.body;
 
     if (!email || !password || !full_name) {
       return res
@@ -140,25 +142,8 @@ const registerPublicUser = async (req, res) => {
         .json({ error: "Email, password and full name are required" });
     }
 
-    if (!org_code) {
-      return res.status(400).json({ error: "Organization code is required" });
-    }
-
-    // Step 1 — Verify the organization code
-    console.log(`[registerPublic:VERIFY_CODE] code=${org_code}`);
-    const { data: org, error: orgError } = await supabaseAdmin
-      .from("organizations")
-      .select("id, name")
-      .eq("join_code", org_code)
-      .eq("is_active", true)
-      .single();
-
-    if (orgError || !org) {
-      console.warn(`[registerPublic:INVALID_CODE] code=${org_code}`);
-      return res.status(400).json({ error: "Invalid organization code" });
-    }
-
-    // Step 2 — Create auth account in Supabase Auth
+    // Step 1 — Create auth account in Supabase Auth
+    console.log(`[registerPublic:CREATE_AUTH] email=${email}`);
     const { data, error } = await supabaseAdmin.auth.signUp({
       email,
       password,
@@ -168,8 +153,8 @@ const registerPublicUser = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // Step 3 — Create profile in public_users table, linked to the org
-    console.log(`[registerPublic:DB_INSERT] user=${data.user.id} email=${email} org=${org.id}`);
+    // Step 2 — Create profile in public_users table (no org_id at this stage)
+    console.log(`[registerPublic:DB_INSERT] user=${data.user.id} email=${email}`);
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from("public_users")
       .insert({
@@ -177,7 +162,7 @@ const registerPublicUser = async (req, res) => {
         email,
         full_name,
         phone: phone || null,
-        org_id: org.id,
+        // org_id is intentionally NOT set here — user selects org when raising an issue
       })
       .select()
       .single();
@@ -193,7 +178,6 @@ const registerPublicUser = async (req, res) => {
         id: newUser.id,
         email: newUser.email,
         full_name: newUser.full_name,
-        org_id: newUser.org_id,
       },
     });
   } catch (err) {

@@ -1,20 +1,20 @@
 /* Sahara Landing Specific Styles */
 
 .sahara-landing-root {
-  --sahara-blue: #3b82f6;
-  --sahara-blue-dark: #1d4ed8;
+  --sahara-blue: #088395;
+  --sahara-blue-dark: #201f47;
   --sahara-green: #10b981;
   --sahara-green-dark: #059669;
   --sahara-red: #ef4444;
-  --sahara-orange: #f97316;
-  --sahara-bg: #0f172a;
-  --sahara-surface: #1e293b;
-  --sahara-surface2: #334155;
-  --sahara-border: #475569;
-  --sahara-text: #f1f5f9;
-  --sahara-text-muted: #94a3b8;
-  --sahara-radius: 20px;
-  --sahara-radius-sm: 12px;
+  --sahara-orange: #088395;
+  --sahara-bg: #f9f9fb;
+  --sahara-surface: #ffffff;
+  --sahara-surface2: #f3f4f6;
+  --sahara-border: #e2e8f0;
+  --sahara-text: #201f47;
+  --sahara-text-muted: #64748b;
+  --sahara-radius: 24px;
+  --sahara-radius-sm: 14px;
 }
 
 .glass {

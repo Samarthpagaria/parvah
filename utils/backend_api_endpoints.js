@@ -4,7 +4,8 @@
  * Each function corresponds to an Express backend endpoint.
  */
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000') + '/api';
+const BASE_URL =
+  (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000") + "/api";
 
 /**
  * Global API Fetch Helper
@@ -12,27 +13,29 @@ const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000
  * Automatically attaches the JWT from localStorage and handles error responses.
  */
 async function apiFetch(endpoint, options = {}) {
-  let useType = 'admin';
-  if (typeof window !== 'undefined') {
-    const isPublic = window.location.pathname.startsWith('/portal') ||
-      window.location.pathname.startsWith('/auth/public') ||
-      localStorage.getItem('parvah_user_type') === 'public';
-    if (isPublic && !window.location.pathname.includes('/admin')) {
-      useType = 'public';
+  let useType = "admin";
+  if (typeof window !== "undefined") {
+    const isPublic =
+      window.location.pathname.startsWith("/portal") ||
+      window.location.pathname.startsWith("/auth/public") ||
+      localStorage.getItem("parvah_user_type") === "public";
+    if (isPublic && !window.location.pathname.includes("/admin")) {
+      useType = "public";
     }
   }
 
-  const token = useType === 'admin'
-    ? localStorage.getItem('parvah_admin_token')
-    : localStorage.getItem('parvah_public_token');
+  const token =
+    useType === "admin"
+      ? localStorage.getItem("parvah_admin_token")
+      : localStorage.getItem("parvah_public_token");
 
   const headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(options.headers || {}),
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -40,25 +43,41 @@ async function apiFetch(endpoint, options = {}) {
     headers,
   });
 
-  const data = await response.json().catch(() => ({ error: 'Response parsing failed' }));
+  const data = await response
+    .json()
+    .catch(() => ({ error: "Response parsing failed" }));
 
   if (!response.ok) {
-    const errorMsg = data.message || data.details || data.error || 'API request failed';
+    const errorMsg =
+      data.message || data.details || data.error || "API request failed";
 
     // 🚩 Handle Token Expiration (401 Unauthorized)
-    if (response.status === 401 && (errorMsg.includes('invalid') || errorMsg.includes('expired') || errorMsg.includes('token'))) {
-      console.warn('[apiFetch] Session expired/invalid. Redirecting to login...');
+    if (
+      response.status === 401 &&
+      (errorMsg.includes("invalid") ||
+        errorMsg.includes("expired") ||
+        errorMsg.includes("token"))
+    ) {
+      console.warn(
+        "[apiFetch] Session expired/invalid. Redirecting to login...",
+      );
 
       // Clear local storage
-      if (useType === 'admin') {
-        localStorage.removeItem('parvah_admin_token');
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/admin/login')) {
-          window.location.href = '/admin/login';
+      if (useType === "admin") {
+        localStorage.removeItem("parvah_admin_token");
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("/admin/login")
+        ) {
+          window.location.href = "/admin/login";
         }
       } else {
-        localStorage.removeItem('parvah_public_token');
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login';
+        localStorage.removeItem("parvah_public_token");
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.startsWith("/login")
+        ) {
+          window.location.href = "/login";
         }
       }
     }
@@ -82,47 +101,48 @@ async function apiFetch(endpoint, options = {}) {
 export const authAPI = {
   // Admin Login
   loginAdmin: async (email, password) => {
-    localStorage.setItem('parvah_user_type', 'admin');
-    const data = await apiFetch('/auth/admin/login', {
-      method: 'POST',
+    localStorage.setItem("parvah_user_type", "admin");
+    const data = await apiFetch("/auth/admin/login", {
+      method: "POST",
       body: JSON.stringify({ email, password }),
     });
     if (data.token) {
-      localStorage.setItem('parvah_admin_token', data.token);
+      localStorage.setItem("parvah_admin_token", data.token);
     }
     return data;
   },
 
   // Public User Login
   loginPublic: async (email, password) => {
-    localStorage.setItem('parvah_user_type', 'public');
-    const data = await apiFetch('/auth/public/login', {
-      method: 'POST',
+    localStorage.setItem("parvah_user_type", "public");
+    const data = await apiFetch("/auth/public/login", {
+      method: "POST",
       body: JSON.stringify({ email, password }),
     });
     if (data.token) {
-      localStorage.setItem('parvah_public_token', data.token);
+      localStorage.setItem("parvah_public_token", data.token);
     }
     return data;
   },
 
   // Public User Register
   registerPublic: (userData) => {
-    localStorage.setItem('parvah_user_type', 'public');
-    return apiFetch('/auth/public/register', {
-      method: 'POST',
+    localStorage.setItem("parvah_user_type", "public");
+    return apiFetch("/auth/public/register", {
+      method: "POST",
       body: JSON.stringify(userData),
     });
   },
 
   // Get Current Profile
-  getMe: () => apiFetch('/auth/me'),
+  getMe: () => apiFetch("/auth/me"),
 
   // Update Profile
-  updateProfile: (profileData) => apiFetch('/auth/profile', {
-    method: 'PUT',
-    body: JSON.stringify(profileData),
-  }),
+  updateProfile: (profileData) =>
+    apiFetch("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(profileData),
+    }),
 
   // Sign out
   registerAdmin: async (data) => {
@@ -133,12 +153,12 @@ export const authAPI = {
   },
   logout: async () => {
     try {
-      await apiFetch('/auth/logout', { method: 'POST' });
+      await apiFetch("/auth/logout", { method: "POST" });
     } finally {
-      const type = localStorage.getItem('parvah_user_type');
-      if (type === 'admin') localStorage.removeItem('parvah_admin_token');
-      else localStorage.removeItem('parvah_public_token');
-      localStorage.removeItem('parvah_user_type');
+      const type = localStorage.getItem("parvah_user_type");
+      if (type === "admin") localStorage.removeItem("parvah_admin_token");
+      else localStorage.removeItem("parvah_public_token");
+      localStorage.removeItem("parvah_user_type");
     }
   },
 };
@@ -150,48 +170,61 @@ export const authAPI = {
 
 export const orgAPI = {
   // List all (Super Admin only)
-  listAll: () => apiFetch('/organizations'),
+  listAll: () => apiFetch("/organizations"),
 
   // Create new (Super Admin only)
-  create: (orgData) => apiFetch('/organizations', {
-    method: 'POST',
-    body: JSON.stringify(orgData),
-  }),
+  create: (orgData) =>
+    apiFetch("/organizations", {
+      method: "POST",
+      body: JSON.stringify(orgData),
+    }),
 
   // Get details (id, owner, staff list)
   getDetails: (orgId) => apiFetch(`/organizations/${orgId}`),
 
   // Update settings
-  update: (orgId, orgData) => apiFetch(`/organizations/${orgId}`, {
-    method: 'PUT',
-    body: JSON.stringify(orgData),
-  }),
+  update: (orgId, orgData) =>
+    apiFetch(`/organizations/${orgId}`, {
+      method: "PUT",
+      body: JSON.stringify(orgData),
+    }),
 
   // Deactivate (Super Admin only)
-  deactivate: (orgId) => apiFetch(`/organizations/${orgId}`, {
-    method: 'DELETE',
-  }),
+  deactivate: (orgId) =>
+    apiFetch(`/organizations/${orgId}`, {
+      method: "DELETE",
+    }),
 
   // List members
   listMembers: (orgId) => apiFetch(`/organizations/${orgId}/members`),
 
   // Remove member
-  removeMember: (orgId, memberId) => apiFetch(`/organizations/${orgId}/members/${memberId}`, {
-    method: 'DELETE',
-  }),
+  removeMember: (orgId, memberId) =>
+    apiFetch(`/organizations/${orgId}/members/${memberId}`, {
+      method: "DELETE",
+    }),
 
   // Categories
   listCategories: (orgId) => apiFetch(`/organizations/${orgId}/categories`),
-  createCategory: (orgId, catData) => apiFetch(`/organizations/${orgId}/categories`, {
-    method: 'POST',
-    body: JSON.stringify(catData),
-  }),
-  deleteCategory: (orgId, catId) => apiFetch(`/organizations/${orgId}/categories/${catId}`, {
-    method: 'DELETE',
-  }),
+  createCategory: (orgId, catData) =>
+    apiFetch(`/organizations/${orgId}/categories`, {
+      method: "POST",
+      body: JSON.stringify(catData),
+    }),
+  deleteCategory: (orgId, catId) =>
+    apiFetch(`/organizations/${orgId}/categories/${catId}`, {
+      method: "DELETE",
+    }),
 
   // Categories for the current public user's organization (no orgId needed)
-  listMyCategories: () => apiFetch('/organizations/categories/mine'),
+  listMyCategories: () => apiFetch("/organizations/categories/mine"),
+
+  // All active organizations — for issue form org dropdown (public users)
+  listActive: () => apiFetch("/organizations/public/list"),
+
+  // Categories belonging to a specific org — filtered for the issue form
+  listCategoriesByOrg: (orgId) =>
+    apiFetch(`/organizations/public/${orgId}/categories`),
 };
 
 /**
@@ -201,10 +234,11 @@ export const orgAPI = {
 
 export const invitationAPI = {
   // Send invite
-  send: (orgId, email, role) => apiFetch('/invitations', {
-    method: 'POST',
-    body: JSON.stringify({ org_id: orgId, invitee_email: email, role }),
-  }),
+  send: (orgId, email, role) =>
+    apiFetch("/invitations", {
+      method: "POST",
+      body: JSON.stringify({ org_id: orgId, invitee_email: email, role }),
+    }),
 
   // List pending invites
   listPending: (orgId) => apiFetch(`/invitations/${orgId}`),
@@ -223,10 +257,11 @@ export const invitationAPI = {
   verifyToken: (token) => apiFetch(`/invitations/verify/${token}`),
 
   // Finalize signup (Public page)
-  accept: (token, fullName, password) => apiFetch('/invitations/accept', {
-    method: 'POST',
-    body: JSON.stringify({ token, full_name: fullName, password }),
-  }),
+  accept: (token, fullName, password) =>
+    apiFetch("/invitations/accept", {
+      method: "POST",
+      body: JSON.stringify({ token, full_name: fullName, password }),
+    }),
 };
 
 /**
@@ -238,41 +273,63 @@ export const issueAPI = {
   // Fetch list with optional filters (e.g., { status: 'open', assigned_to: 'uuid' })
   list: (params = {}) => {
     const query = new URLSearchParams(params).toString();
-    return apiFetch(`/issues${query ? `?${query}` : ''}`);
+    return apiFetch(`/issues${query ? `?${query}` : ""}`);
   },
 
   // Report new issue
-  report: (issueData) => apiFetch('/issues', {
-    method: 'POST',
-    body: JSON.stringify(issueData),
-  }),
+  report: (issueData) =>
+    apiFetch("/issues", {
+      method: "POST",
+      body: JSON.stringify(issueData),
+    }),
 
   // Get specific issue details
   getDetails: (issueId) => apiFetch(`/issues/${issueId}`),
 
   // Cast upvote
-  upvote: (issueId) => apiFetch(`/issues/${issueId}/upvote`, {
-    method: 'POST',
-  }),
+  upvote: (issueId) =>
+    apiFetch(`/issues/${issueId}/upvote`, {
+      method: "POST",
+    }),
 
   // Update status (Staff/Admin)
-  updateStatus: (issueId, status) => apiFetch(`/issues/${issueId}/status`, {
-    method: 'PUT',
-    body: JSON.stringify({ status }),
-  }),
+  updateStatus: (issueId, status) =>
+    apiFetch(`/issues/${issueId}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
 
   // Assign staff
-  assignStaff: (issueId, staffId) => apiFetch(`/issues/${issueId}/assign`, {
-    method: 'PUT',
-    body: JSON.stringify({ assigned_to: staffId }),
-  }),
+  assignStaff: (issueId, staffId) =>
+    apiFetch(`/issues/${issueId}/assign`, {
+      method: "PUT",
+      body: JSON.stringify({ assigned_to: staffId }),
+    }),
 
   // Get activity log
   getActivity: (issueId) => apiFetch(`/issues/${issueId}/activity`),
 
   // Get comments
   getComments: (issueId) => apiFetch(`/issues/${issueId}/comments`),
+
+  // Post a new comment
+  postComment: (issueId, content) =>
+    apiFetch(`/issues/${issueId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
+
+  // Get attachments for an issue
+  getAttachments: (issueId) => apiFetch(`/issues/${issueId}/attachments`),
+
+  // Register an uploaded file attachment (after direct storage upload)
+  registerAttachment: (issueId, attachmentData) =>
+    apiFetch(`/issues/${issueId}/attachments`, {
+      method: "POST",
+      body: JSON.stringify(attachmentData),
+    }),
 };
+
 
 /**
  * 📊 ANALYTICS MODULE
@@ -284,6 +341,7 @@ export const analyticsAPI = {
   getTrends: (orgId) => apiFetch(`/analytics/trends/${orgId}`),
   getByCategory: (orgId) => apiFetch(`/analytics/by-category/${orgId}`),
   getByStatus: (orgId) => apiFetch(`/analytics/by-status/${orgId}`),
-  getStaffPerformance: (orgId) => apiFetch(`/analytics/staff-performance/${orgId}`),
+  getStaffPerformance: (orgId) =>
+    apiFetch(`/analytics/staff-performance/${orgId}`),
   getResolutionTime: (orgId) => apiFetch(`/analytics/resolution-time/${orgId}`),
 };

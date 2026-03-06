@@ -166,7 +166,7 @@ exports.createIssue = async (req, res) => {
         // Only public users can submit issues
         const { data: pubUser } = await supabaseAdmin
             .from('public_users')
-            .select('id, org_id')
+            .select('id')
             .eq('id', userId)
             .single();
 
@@ -175,48 +175,55 @@ exports.createIssue = async (req, res) => {
             return res.status(403).json({ error: 'Only public users can submit issues.' });
         }
 
-        const org_id = pubUser.org_id;
-        if (!org_id) {
-            return res.status(400).json({ error: 'Your account is not linked to any organization. Please contact support.' });
-        }
-
         let {
+            org_id,
             category_id,
             title,
             description,
-            priority = 'medium',
             latitude,
             longitude,
             address,
             is_public = true,
         } = req.body;
 
+        // org_id must be provided in the request body
+        if (!org_id) {
+            return res.status(400).json({ error: 'Please select an organization for this issue.' });
+        }
+
+        // Validate the org exists and is active
+        const { data: org, error: orgError } = await supabaseAdmin
+            .from('organizations')
+            .select('id, name')
+            .eq('id', org_id)
+            .eq('is_active', true)
+            .single();
+
+        if (orgError || !org) {
+            return res.status(400).json({ error: 'Selected organization is not valid or inactive.' });
+        }
+
         if (!title || title.length < 5)
             return res.status(400).json({ error: 'Title must be at least 5 characters.' });
         if (!description || description.length < 10)
             return res.status(400).json({ error: 'Description must be at least 10 characters.' });
 
-        // Map category string to ID if needed
+        // Resolve and validate category — must belong to the selected org
         let resolvedCategoryId = null;
         if (category_id) {
-            console.log(`[createIssue:RESOLVE_CAT] input=${category_id}`);
+            console.log(`[createIssue:RESOLVE_CAT] input=${category_id} org=${org_id}`);
             const { data: cat } = await supabaseAdmin
                 .from('issue_categories')
                 .select('id')
+                .eq('org_id', org_id)
                 .or(`id.eq.${category_id},name.eq.${category_id}`)
+                .eq('is_active', true)
                 .single();
 
             if (cat) {
                 resolvedCategoryId = cat.id;
-            } else if (category_id.length > 3) {
-                // If it looks like a name, create it
-                console.log(`[createIssue:NEW_CAT] name=${category_id} org=${org_id}`);
-                const { data: newCat } = await supabaseAdmin
-                    .from('issue_categories')
-                    .insert({ name: category_id, org_id })
-                    .select()
-                    .single();
-                if (newCat) resolvedCategoryId = newCat.id;
+            } else {
+                return res.status(400).json({ error: 'Selected category does not belong to the chosen organization.' });
             }
         }
 
@@ -229,7 +236,7 @@ exports.createIssue = async (req, res) => {
                 category_id: resolvedCategoryId,
                 title,
                 description,
-                priority,
+                // priority intentionally omitted — DB default 'medium' is used; set by admins
                 latitude: latitude || null,
                 longitude: longitude || null,
                 address: address || null,
@@ -238,6 +245,7 @@ exports.createIssue = async (req, res) => {
             })
             .select()
             .single();
+
 
         if (error) throw error;
         console.log(`[createIssue:SUCCESS] id=${issue.id}`);
@@ -248,7 +256,7 @@ exports.createIssue = async (req, res) => {
             actorId: userId,
             actorType: 'public_user',
             action: 'ISSUE_CREATED',
-            newValue: { status: 'open', priority },
+            newValue: { status: 'open' },
             orgId: org_id,
         });
 
@@ -783,16 +791,27 @@ exports.uploadAttachment = async (req, res) => {
         const userId = req.user.id;
         const { file_url, file_name, file_type, file_size_kb } = req.body;
 
+        console.log(`[uploadAttachment] issueId=${issueId} userId=${userId} file=${file_name}`);
+
         if (!file_url || !file_name || !file_type) {
+            console.warn(`[uploadAttachment:BAD_REQUEST] Missing fields: url=${!!file_url} name=${!!file_name} type=${!!file_type}`);
             return res.status(400).json({ error: 'file_url, file_name, and file_type are required.' });
         }
 
-        if (!file_type.startsWith('image/')) {
-            return res.status(400).json({ error: 'Only image files are allowed.' });
+        const ALLOWED_TYPES = [
+            'image/jpg', 'image/jpeg', 'image/png', 'image/webp',
+            'video/mp4', 'video/quicktime',
+        ];
+        if (!ALLOWED_TYPES.includes(file_type)) {
+            console.warn(`[uploadAttachment:INVALID_TYPE] ${file_type}`);
+            return res.status(400).json({ error: 'Only jpg, jpeg, png, webp images and mp4, mov videos are allowed.' });
         }
 
-        if (file_size_kb && file_size_kb > 10240) {
-            return res.status(400).json({ error: 'File size must not exceed 10MB (10240 KB).' });
+        const isVideo = file_type.startsWith('video/');
+        const maxSizeKb = isVideo ? 51200 : 10240; // 50MB for video, 10MB for images
+        if (file_size_kb && file_size_kb > maxSizeKb) {
+            console.warn(`[uploadAttachment:TOO_LARGE] ${file_size_kb}KB`);
+            return res.status(400).json({ error: `File too large. Max ${isVideo ? '50MB' : '10MB'} allowed.` });
         }
 
         const { data: issue, error: fetchErr } = await supabaseAdmin
@@ -801,22 +820,33 @@ exports.uploadAttachment = async (req, res) => {
             .eq('id', issueId)
             .single();
 
-        if (fetchErr || !issue) return res.status(404).json({ error: 'Issue not found.' });
+        if (fetchErr || !issue) {
+            console.warn(`[uploadAttachment:NOT_FOUND] issueId=${issueId} error=${fetchErr?.message}`);
+            return res.status(404).json({ error: 'Issue not found.' });
+        }
 
         const isReporter = issue.reported_by === userId;
         const member = await getAdminOrgMember(userId, issue.org_id);
 
+        console.log(`[uploadAttachment:PERMS] isReporter=${isReporter} isAdmin=${!!member}`);
+
         if (!isReporter && !member) {
+            console.warn(`[uploadAttachment:DENIED] user=${userId} does not have access to issue=${issueId}`);
             return res.status(403).json({ error: 'Access denied.' });
         }
 
         // Check attachment count (max 5 per issue as per blueprint)
-        const { count } = await supabaseAdmin
+        const { count, error: countErr } = await supabaseAdmin
             .from('issue_attachments')
             .select('*', { count: 'exact', head: true })
             .eq('issue_id', issueId);
 
+        if (countErr) {
+            console.error(`[uploadAttachment:COUNT_ERROR]`, countErr);
+        }
+
         if (count >= 5) {
+            console.warn(`[uploadAttachment:LIMIT] issueId=${issueId} already has ${count} attachments`);
             return res.status(400).json({ error: 'Maximum of 5 attachments allowed per issue.' });
         }
 
