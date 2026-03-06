@@ -75,11 +75,11 @@ exports.getIssues = async (req, res) => {
       order = "desc",
     } = req.query;
 
-        const offset = (parseInt(page) - 1) * parseInt(limit);
-        const adminUser = await isAdminUser(userId);
-        console.log(`[getIssues] userId=${userId} | isAdmin=${!!adminUser} | isSuper=${adminUser?.is_super_admin} | orgId=${org_id}`);
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const adminUser = await isAdminUser(userId);
+    console.log(
+      `[getIssues] userId=${userId} | isAdmin=${!!adminUser} | isSuper=${adminUser?.is_super_admin} | orgId=${org_id}`,
+    );
 
     let query = supabaseAdmin.from("issues").select(
       `id, title, status, priority, created_at, updated_at, upvotes, is_public,
@@ -220,7 +220,7 @@ exports.createIssue = async (req, res) => {
       actorType: "public_user",
       action: "ISSUE_CREATED",
       newValue: { status: "open", priority },
-            orgId: org_id,
+      orgId: org_id,
     });
 
     // Notify org admins
@@ -299,7 +299,9 @@ exports.getIssueById = async (req, res) => {
     const adminMember = await getAdminOrgMember(userId, issue.org_id);
 
     if (!isReporter && !adminMember) {
-            console.warn(`[getIssueById:DENIED] user=${userId} tried to access issue=${issueId}`);
+      console.warn(
+        `[getIssueById:DENIED] user=${userId} tried to access issue=${issueId}`,
+      );
       return res.status(403).json({ error: "Access denied." });
     }
 
@@ -361,7 +363,9 @@ exports.updateIssue = async (req, res) => {
         .json({ error: "No valid fields provided for update." });
     }
 
-        console.log(`[updateIssue:DB_UPDATE] id=${issueId} updates=${JSON.stringify(updates)}`);
+    console.log(
+      `[updateIssue:DB_UPDATE] id=${issueId} updates=${JSON.stringify(updates)}`,
+    );
     const { data: updated, error: updateErr } = await supabaseAdmin
       .from("issues")
       .update(updates)
@@ -407,11 +411,9 @@ exports.updateIssueStatus = async (req, res) => {
       "rejected",
     ];
     if (!status || !VALID_STATUSES.includes(status)) {
-      return res
-        .status(400)
-        .json({
-          error: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}`,
-        });
+      return res.status(400).json({
+        error: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}`,
+      });
     }
 
     const { data: issue, error: fetchErr } = await supabaseAdmin
@@ -520,12 +522,9 @@ exports.assignIssue = async (req, res) => {
       .single();
 
     if (!assigneeMember || assigneeMember.role !== "staff") {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Assignee must be an active staff member of this organization.",
-        });
+      return res.status(400).json({
+        error: "Assignee must be an active staff member of this organization.",
+      });
     }
 
     const { data: updated, error: updateErr } = await supabaseAdmin
@@ -581,11 +580,9 @@ exports.updateIssuePriority = async (req, res) => {
 
     const VALID_PRIORITIES = ["low", "medium", "high", "critical"];
     if (!priority || !VALID_PRIORITIES.includes(priority)) {
-      return res
-        .status(400)
-        .json({
-          error: `Invalid priority. Must be one of: ${VALID_PRIORITIES.join(", ")}`,
-        });
+      return res.status(400).json({
+        error: `Invalid priority. Must be one of: ${VALID_PRIORITIES.join(", ")}`,
+      });
     }
 
     const { data: issue, error: fetchErr } = await supabaseAdmin
@@ -631,7 +628,7 @@ exports.updateIssuePriority = async (req, res) => {
             issue_id: issueId,
             issueTitle: issue.title,
           }).catch((err) =>
-            console.error("[Notification Error] notifyCriticalIssue:", err)
+            console.error("[Notification Error] notifyCriticalIssue:", err),
           );
         }
       } catch (nErr) {
@@ -673,11 +670,9 @@ exports.deleteIssue = async (req, res) => {
     if (!adminUser.is_super_admin) {
       const member = await getAdminOrgMember(userId, issue.org_id);
       if (!member || member.role !== "owner") {
-        return res
-          .status(403)
-          .json({
-            error: "Only org owners or super admins can delete issues.",
-          });
+        return res.status(403).json({
+          error: "Only org owners or super admins can delete issues.",
+        });
       }
     }
 
@@ -903,14 +898,14 @@ exports.uploadAttachment = async (req, res) => {
 
     if (error) throw error;
 
-        await logActivity({
-            issueId,
-            actorId: userId,
-            actorType: isReporter ? 'public_user' : 'admin_user',
-            action: 'ATTACHMENT_ADDED',
-            newValue: { file_name, file_type },
-            orgId: issue.org_id,
-        });
+    await logActivity({
+      issueId,
+      actorId: userId,
+      actorType: isReporter ? "public_user" : "admin_user",
+      action: "ATTACHMENT_ADDED",
+      newValue: { file_name, file_type },
+      orgId: issue.org_id,
+    });
     await logActivity({
       issueId,
       actorId: userId,
