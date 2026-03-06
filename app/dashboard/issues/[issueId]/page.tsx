@@ -1,21 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 
 type IssueStatus = 'open' | 'in-progress' | 'review' | 'resolved'
 
 const statusConfig: Record<IssueStatus, { label: string; color: string; dot: string; bg: string; border: string }> = {
-    'open':        { label: 'Open',         color: 'text-amber-600',    dot: 'bg-amber-400',   bg: 'bg-amber-50',   border: 'border-amber-200' },
-    'in-progress': { label: 'In Progress',  color: 'text-[#576CDB]',    dot: 'bg-[#576CDB]',   bg: 'bg-[#576CDB]/10', border: 'border-[#576CDB]/20' },
-    'review':      { label: 'Under Review', color: 'text-purple-600',   dot: 'bg-purple-500',  bg: 'bg-purple-50',  border: 'border-purple-200' },
-    'resolved':    { label: 'Resolved',     color: 'text-[#088395]',    dot: 'bg-[#088395]',   bg: 'bg-[#088395]/10', border: 'border-[#088395]/20' },
+    'open': { label: 'Open', color: 'text-amber-600', dot: 'bg-amber-400', bg: 'bg-amber-50', border: 'border-amber-200' },
+    'in-progress': { label: 'In Progress', color: 'text-[#576CDB]', dot: 'bg-[#576CDB]', bg: 'bg-[#576CDB]/10', border: 'border-[#576CDB]/20' },
+    'review': { label: 'Under Review', color: 'text-purple-600', dot: 'bg-purple-500', bg: 'bg-purple-50', border: 'border-purple-200' },
+    'resolved': { label: 'Resolved', color: 'text-[#088395]', dot: 'bg-[#088395]', bg: 'bg-[#088395]/10', border: 'border-[#088395]/20' },
 }
 
 const priorityConfig: Record<string, { color: string; bg: string }> = {
-    'High':   { color: 'text-[#F25A5A]', bg: 'bg-[#F25A5A]/10' },
+    'High': { color: 'text-[#F25A5A]', bg: 'bg-[#F25A5A]/10' },
     'Medium': { color: 'text-amber-600', bg: 'bg-amber-50' },
-    'Low':    { color: 'text-[#088395]',  bg: 'bg-[#088395]/10' },
+    'Low': { color: 'text-[#088395]', bg: 'bg-[#088395]/10' },
 }
 
 const mockIssueData: Record<string, {
@@ -70,14 +70,14 @@ const defaultIssue = {
 }
 
 const activityIconConfig: Record<string, { bg: string; icon: React.ReactNode }> = {
-    note:    { bg: 'bg-[#576CDB]/10 text-[#576CDB]', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg> },
-    assign:  { bg: 'bg-amber-50 text-amber-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
-    status:  { bg: 'bg-purple-50 text-purple-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> },
+    note: { bg: 'bg-[#576CDB]/10 text-[#576CDB]', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg> },
+    assign: { bg: 'bg-amber-50 text-amber-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
+    status: { bg: 'bg-purple-50 text-purple-500', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> },
     created: { bg: 'bg-[#088395]/10 text-[#088395]', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
 }
 
-export default function IssueDetailPage({ params }: { params: { issueId: string } }) {
-    const { issueId } = params
+export default function IssueDetailPage({ params }: { params: Promise<{ issueId: string }> }) {
+    const { issueId } = use(params)
     const issue = mockIssueData[issueId] ?? { ...defaultIssue, id: issueId }
     const s = statusConfig[issue.status]
     const pc = priorityConfig[issue.priority] ?? priorityConfig['Medium']
@@ -149,7 +149,7 @@ export default function IssueDetailPage({ params }: { params: { issueId: string 
                                 <span className="text-[12px] font-normal text-gray-500">{issue.category}</span>
                             </div>
                             <h1 className="text-[22px] md:text-[24px] font-normal text-[#201F47] leading-snug mb-4 tracking-tight">{issue.title}</h1>
-                            
+
                             {/* Meta row */}
                             <div className="flex flex-wrap gap-x-5 gap-y-2.5">
                                 <div className="flex items-center gap-2 text-[13px] text-gray-500">
@@ -184,9 +184,9 @@ export default function IssueDetailPage({ params }: { params: { issueId: string 
 
                         {/* Description */}
                         <div className={`bg-white rounded-[24px] border border-gray-100 p-6 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.1s' }}>
-                                <p className="text-[12px] font-normal text-gray-400 uppercase tracking-wider mb-4">Description</p>
-                                <p className="text-[14px] font-normal text-gray-600 leading-relaxed">{issue.description}</p>
-                            </div>
+                            <p className="text-[12px] font-normal text-gray-400 uppercase tracking-wider mb-4">Description</p>
+                            <p className="text-[14px] font-normal text-gray-600 leading-relaxed">{issue.description}</p>
+                        </div>
 
                         {/* Activity Log */}
                         <div className={`bg-white rounded-[24px] border border-gray-100 overflow-hidden ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.15s' }}>
@@ -283,11 +283,10 @@ export default function IssueDetailPage({ params }: { params: { issueId: string 
                                     return (
                                         <div key={status} className="flex gap-3.5">
                                             <div className="flex flex-col items-center">
-                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 border-2 transition-all ${
-                                                    isDone ? 'bg-[#088395] border-[#088395]' :
-                                                    isCurrent ? `${sc.bg} ${sc.border}` :
-                                                    'bg-white border-gray-200'
-                                                }`}>
+                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 border-2 transition-all ${isDone ? 'bg-[#088395] border-[#088395]' :
+                                                        isCurrent ? `${sc.bg} ${sc.border}` :
+                                                            'bg-white border-gray-200'
+                                                    }`}>
                                                     {isDone ? (
                                                         <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                                                     ) : (
@@ -299,11 +298,10 @@ export default function IssueDetailPage({ params }: { params: { issueId: string 
                                                 )}
                                             </div>
                                             <div className="pb-5">
-                                                <p className={`text-[13px] font-normal ${
-                                                    isCurrent ? sc.color :
-                                                    isDone ? 'text-[#088395]' :
-                                                    'text-gray-300'
-                                                }`}>
+                                                <p className={`text-[13px] font-normal ${isCurrent ? sc.color :
+                                                        isDone ? 'text-[#088395]' :
+                                                            'text-gray-300'
+                                                    }`}>
                                                     {sc.label}
                                                     {isCurrent && <span className="ml-1.5 text-[10px] font-normal opacity-60">← Current</span>}
                                                 </p>

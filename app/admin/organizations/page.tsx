@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { orgAPI, authAPI } from '@/utils/backend_api_endpoints'
 
 const mockOrgs = [
   {
@@ -49,27 +50,42 @@ const mockOrgs = [
 ]
 
 export default function OrganizationsPage() {
+  const [orgs, setOrgs] = useState<any[]>([])
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [isMounted, setIsMounted] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
 
   const notifications = [
-    { id: 1, title: 'New issue reported', desc: 'Pothole on Ring Road — City Municipality', time: '2m ago', unread: true, color: 'bg-[#F25A5A]' },
-    { id: 2, title: 'Issue resolved', desc: 'Gutter Cleaning marked done by Tom Davis', time: '1h ago', unread: true, color: 'bg-emerald-500' },
-    { id: 3, title: 'Member invited', desc: 'Priya Mehta joined Waste Management', time: '3h ago', unread: false, color: 'bg-[#576CDB]' },
-    { id: 4, title: 'Status updated', desc: 'Water Pipe Leak moved to In Review', time: 'Yesterday', unread: false, color: 'bg-[#088395]' },
+    { id: 1, title: 'Session started', desc: 'Logged in as administrator', time: 'Just now', unread: true, color: 'bg-[#F25A5A]' },
   ]
 
   const unreadCount = notifications.filter(n => n.unread).length
 
   useEffect(() => {
     setIsMounted(true)
+    const fetchData = async () => {
+      try {
+        const [orgsRes, userRes] = await Promise.all([
+          orgAPI.listAll(),
+          authAPI.getMe()
+        ])
+        setOrgs(orgsRes.organizations || [])
+        setUser(userRes.user)
+      } catch (err) {
+        console.error('Failed to fetch organizations:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
   }, [])
 
-  const filtered = mockOrgs.filter(o =>
-    (o.name.toLowerCase().includes(search.toLowerCase()) ||
-    o.industry.toLowerCase().includes(search.toLowerCase())) &&
+  const filtered = orgs.filter(o =>
+    (o.name?.toLowerCase().includes(search.toLowerCase()) ||
+      o.industry?.toLowerCase().includes(search.toLowerCase())) &&
     (activeFilter === 'All' || o.industry === activeFilter)
   )
 
@@ -144,13 +160,13 @@ export default function OrganizationsPage() {
               )}
             </div>
             <button className="text-[#94a3b8] hover:text-[#201F47] transition-colors font-normal text-sm">
-              Administrator
+              {user?.full_name || 'Administrator'}
             </button>
             <Link href="/admin/profile" className="w-8 h-8 flex items-center justify-center rounded-xl bg-[#088395]/10 text-[#088395] font-normal text-sm hover:ring-2 hover:ring-[#088395]/20 transition-all">
-              SA
+              {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
             </Link>
-            <button 
-              onClick={() => window.location.href = '/admin/login'}
+            <button
+              onClick={async () => { await authAPI.logout(); window.location.href = '/admin/login' }}
               className="text-[#94a3b8] hover:text-[#F25A5A] transition-colors font-normal text-[11px] uppercase tracking-widest pl-4 border-l border-gray-200"
             >
               Logout
@@ -166,11 +182,11 @@ export default function OrganizationsPage() {
             <h1 className="text-3xl font-normal tracking-tight text-[#201F47] mb-2">Organizations</h1>
             <p className="text-base font-normal text-[#94a3b8]">Manage and oversee all registered infrastructure nodes.</p>
           </div>
-          <Link 
-            href="/admin/organizations/new" 
+          <Link
+            href="/admin/organizations/new"
             className="bg-[#F25A5A] hover:bg-[#e04f4f] text-white px-6 py-2.5 rounded-2xl font-normal text-sm transition-all flex items-center gap-2 shadow-sm shadow-[#F25A5A]/20"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5"/></svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" /></svg>
             New Organization
           </Link>
         </div>
@@ -179,28 +195,27 @@ export default function OrganizationsPage() {
         <div className={`flex flex-wrap items-center justify-between gap-4 mb-10 transition-all duration-700 delay-100 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <div className="flex gap-2">
             {['All', 'Government', 'Utilities', 'Environment'].map(f => (
-              <button 
-                key={f} 
-                onClick={() => setActiveFilter(f)} 
-                className={`px-4 py-2 rounded-2xl text-sm font-normal transition-all ${
-                  activeFilter === f 
-                    ? 'bg-[#201F47] text-white shadow-sm' 
-                    : 'bg-white border border-gray-200 text-[#94a3b8] hover:bg-gray-50'
-                }`}
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={`px-4 py-2 rounded-2xl text-sm font-normal transition-all ${activeFilter === f
+                  ? 'bg-[#201F47] text-white shadow-sm'
+                  : 'bg-white border border-gray-200 text-[#94a3b8] hover:bg-gray-50'
+                  }`}
               >
                 {f}
               </button>
             ))}
           </div>
-          
+
           <div className="relative max-w-xs w-full">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input 
-              type="text" 
-              placeholder="Search organizations..." 
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-normal text-[#201F47] placeholder:text-gray-400 focus:border-[#088395] focus:ring-4 focus:ring-[#088395]/10 transition-all" 
-              value={search} 
-              onChange={e => setSearch(e.target.value)} 
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input
+              type="text"
+              placeholder="Search organizations..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl outline-none text-sm font-normal text-[#201F47] placeholder:text-gray-400 focus:border-[#088395] focus:ring-4 focus:ring-[#088395]/10 transition-all"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
             />
           </div>
         </div>
@@ -208,21 +223,21 @@ export default function OrganizationsPage() {
         {/* Bento Grid layout for cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {filtered.map((org, index) => (
-            <div 
-              key={org.id} 
+            <div
+              key={org.id}
               className={`group bg-white rounded-[24px] border border-gray-100 p-6 flex flex-col hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
               style={{ transitionDelay: `${150 + index * 50}ms` }}
             >
               {/* Card Header */}
               <div className="flex justify-between items-start mb-5">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${org.iconBg}`}>
-                  <svg className={`w-5 h-5 ${org.iconColor}`} fill="currentColor" viewBox="0 0 24 24">
-                    <path d={org.iconName} />
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${org.iconBg || 'bg-[#088395]/10'}`}>
+                  <svg className={`w-5 h-5 ${org.iconColor || 'text-[#088395]'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d={org.iconName || 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'} />
                   </svg>
                 </div>
-                
+
                 {/* Next button replacing edit option */}
-                <Link 
+                <Link
                   href={`/admin/organizations/${org.id}/dashboard`}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-[#201F47] text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shadow-md shadow-[#201F47]/20"
                 >
@@ -245,18 +260,18 @@ export default function OrganizationsPage() {
               {/* Clean minimal statistics */}
               <div className="flex items-center gap-4 mb-5 pt-4 border-t border-gray-50">
                 <div className="flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    <span className="text-[13px] font-normal text-gray-500">{org.stats.issues} Issues</span>
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                  <span className="text-[13px] font-normal text-gray-500">{org.stats?.issues || 0} Issues</span>
                 </div>
                 <div className="flex items-center gap-1.5 border-l border-gray-100 pl-4">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                    <span className="text-[13px] font-normal text-gray-500">{org.stats.members} Staff</span>
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                  <span className="text-[13px] font-normal text-gray-500">{org.stats?.members || 0} Staff</span>
                 </div>
               </div>
 
               {/* Actions */}
               <div>
-                <Link 
+                <Link
                   href={`/admin/organizations/${org.id}/dashboard`}
                   className="block w-full text-center py-2.5 rounded-xl bg-[#F9F9FB] text-[#201F47] text-sm font-normal hover:bg-[#f0f2f5] transition-colors"
                 >
@@ -267,8 +282,8 @@ export default function OrganizationsPage() {
           ))}
 
           {/* Add New Node Card */}
-          <Link 
-            href="/admin/organizations/new" 
+          <Link
+            href="/admin/organizations/new"
             className={`bg-white rounded-[24px] border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center min-h-[300px] hover:border-[#F25A5A]/30 hover:bg-[#F25A5A]/5 transition-all duration-300 group ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
             style={{ transitionDelay: `${150 + filtered.length * 50}ms` }}
           >

@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { orgAPI } from '@/utils/backend_api_endpoints'
 
 export default function CreateOrganizationPage() {
     const [form, setForm] = useState({
         name: '',
         slug: '',
+        join_code: '',
         description: '',
         industry: '',
         email: '',
@@ -16,6 +18,8 @@ export default function CreateOrganizationPage() {
         state: '',
     })
     const [submitted, setSubmitted] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [loading, setLoading] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
 
     useEffect(() => {
@@ -31,12 +35,29 @@ export default function CreateOrganizationPage() {
         }))
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setSubmitted(true)
-        setTimeout(() => {
-            window.location.href = '/admin/organizations'
-        }, 1200)
+        setError(null)
+        setLoading(true)
+        try {
+            const res = await orgAPI.create({
+                name: form.name,
+                slug: form.slug,
+                join_code: form.join_code,
+                description: form.description,
+                industry: form.industry,
+            })
+            console.log('Org created:', res)
+            setSubmitted(true)
+            setTimeout(() => {
+                window.location.href = '/admin/organizations'
+            }, 1200)
+        } catch (err: any) {
+            console.error('Failed to create organization:', err)
+            setError(err.message || 'Failed to create organization. Please try again.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const industries = ['Government', 'Utilities', 'Environment', 'Transport', 'Health', 'Education', 'Other']
@@ -54,7 +75,7 @@ export default function CreateOrganizationPage() {
                     transform: translateY(0);
                 }
             `}</style>
-            
+
             {/* Header */}
             <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -91,12 +112,17 @@ export default function CreateOrganizationPage() {
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {error && (
+                            <div className="bg-red-50 border border-red-100 text-red-600 px-6 py-4 rounded-2xl text-sm mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {error}
+                            </div>
+                        )}
                         {/* Bento Grid Layout */}
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                            
+
                             {/* Left Column (8 cols) */}
                             <div className="lg:col-span-8 flex flex-col gap-5">
-                                
+
                                 {/* Basic Info Card */}
                                 <div className={`bg-white rounded-[24px] border border-gray-100 p-6 sm:p-8 hover:shadow-lg hover:shadow-gray-200/40 transition-shadow animate-slide-up ${isMounted ? 'mounted' : ''}`} style={{ transitionDelay: '100ms' }}>
                                     <div className="flex items-center gap-3.5 mb-7">
@@ -110,7 +136,7 @@ export default function CreateOrganizationPage() {
                                             <p className="text-[13px] font-normal text-gray-400 mt-0.5">Core details about the organization.</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-5">
                                         <div className="sm:col-span-2">
                                             <label className="block text-[13px] font-normal text-[#201F47] mb-2">Organization Name <span className="text-[#F25A5A]">*</span></label>
@@ -124,7 +150,21 @@ export default function CreateOrganizationPage() {
                                                 className="w-full px-4 py-3 text-[14px] font-normal border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#088395]/10 focus:border-[#088395] transition-all bg-gray-50/50 focus:bg-white text-[#201F47] placeholder:text-gray-400"
                                             />
                                         </div>
-                                        
+
+                                        <div>
+                                            <label className="block text-[13px] font-normal text-[#201F47] mb-2">Join Code <span className="text-[#F25A5A]">*</span></label>
+                                            <input
+                                                type="text"
+                                                name="join_code"
+                                                required
+                                                placeholder="e.g. CITY2024"
+                                                value={form.join_code}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-3 text-[14px] font-normal border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#088395]/10 focus:border-[#088395] transition-all bg-gray-50/50 focus:bg-white text-[#201F47] placeholder:text-gray-400"
+                                            />
+                                            <p className="text-[11px] text-gray-400 mt-1.5">Users will enter this code during registration to join this organization.</p>
+                                        </div>
+
                                         <div>
                                             <label className="block text-[13px] font-normal text-[#201F47] mb-2">URL Slug <span className="text-[#F25A5A]">*</span></label>
                                             <div className="flex items-center">
@@ -140,12 +180,12 @@ export default function CreateOrganizationPage() {
                                                 />
                                             </div>
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-[13px] font-normal text-[#201F47] mb-2">Industry</label>
                                             <div className="relative">
                                                 <select
-                                                    name=" industry"
+                                                    name="industry"
                                                     value={form.industry}
                                                     onChange={handleChange}
                                                     className="w-full px-4 py-3 text-[14px] font-normal border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-[#088395]/10 focus:border-[#088395] transition-all bg-gray-50/50 focus:bg-white appearance-none text-[#201F47]"
@@ -216,7 +256,7 @@ export default function CreateOrganizationPage() {
 
                             {/* Right Column (4 cols) */}
                             <div className="lg:col-span-4 flex flex-col gap-5">
-                                
+
                                 {/* Description Card */}
                                 <div className={`bg-white rounded-[24px] border border-gray-100 p-6 sm:p-8 hover:shadow-lg hover:shadow-gray-200/40 transition-shadow flex-1 animate-slide-up ${isMounted ? 'mounted' : ''}`} style={{ transitionDelay: '200ms' }}>
                                     <div className="flex items-center gap-3.5 mb-7">
@@ -230,7 +270,7 @@ export default function CreateOrganizationPage() {
                                             <p className="text-[13px] font-normal text-gray-400 mt-0.5">Brief summary.</p>
                                         </div>
                                     </div>
-                                    
+
                                     <textarea
                                         name="description"
                                         rows={4}
@@ -292,9 +332,16 @@ export default function CreateOrganizationPage() {
                             </Link>
                             <button
                                 type="submit"
-                                className="bg-[#088395] hover:bg-[#077382] text-white rounded-xl px-7 py-3 shadow-md shadow-[#088395]/20 font-normal text-[14px] transition-all"
+                                disabled={loading}
+                                className={`bg-[#088395] hover:bg-[#077382] text-white rounded-xl px-7 py-3 shadow-md shadow-[#088395]/20 font-normal text-[14px] transition-all flex items-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
-                                Create Organization
+                                {loading && (
+                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                )}
+                                {loading ? 'Creating...' : 'Create Organization'}
                             </button>
                         </div>
                     </form>

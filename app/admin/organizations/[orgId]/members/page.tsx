@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
+import { orgAPI, authAPI, inviteAPI } from '@/utils/backend_api_endpoints'
 
 const mockOrgs: Record<string, string> = {
     'org-1': 'City Municipality',
@@ -44,10 +45,12 @@ const roleGradient: Record<Role, string> = {
     read: 'bg-[#576CDB]/10 text-[#576CDB] border-[#576CDB]/20',
 }
 
-export default function MembersPage({ params }: { params: { orgId: string } }) {
-    const { orgId } = params
-    const orgName = mockOrgs[orgId] ?? 'Organization'
-    const [members, setMembers] = useState<Member[]>(initialMembers)
+export default function MembersPage({ params }: { params: Promise<{ orgId: string }> }) {
+    const { orgId } = use(params)
+    const [org, setOrg] = useState<any>(null)
+    const [members, setMembers] = useState<Member[]>([])
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
     const [showInvite, setShowInvite] = useState(false)
     const [inviteEmail, setInviteEmail] = useState('')
     const [inviteRole, setInviteRole] = useState<Role>('read')
@@ -56,28 +59,87 @@ export default function MembersPage({ params }: { params: { orgId: string } }) {
 
     useEffect(() => {
         setIsMounted(true)
-    }, [])
+        const fetchData = async () => {
+            // Fetch org + user first
+            try {
+                const [orgRes, userRes] = await Promise.all([
+                    orgAPI.getDetails(orgId),
+                    authAPI.getMe()
+                ])
+                setOrg(orgRes.organization)
+                setUser(userRes.user)
+            } catch (err: any) {
+                console.error('[Members] org/user fetch failed:', err?.message)
+            }
 
-    const handleInvite = (e: React.FormEvent) => {
-        e.preventDefault()
-        const newMember: Member = {
-            id: Date.now().toString(),
-            name: inviteEmail.split('@')[0],
-            email: inviteEmail,
-            role: inviteRole,
-            joinedAt: 'Now',
-            status: 'invited',
-            avatar: inviteEmail.charAt(0).toUpperCase() + (inviteEmail.charAt(1) ?? '').toUpperCase(),
+            // Fetch members independently
+            try {
+                const membersRes = await orgAPI.listMembers(orgId)
+                const activeMembers: Member[] = (membersRes.members || []).map((m: any) => ({
+                    id: m.admin_user?.id || m.admin_user_id,
+                    name: m.admin_user?.full_name || 'Unknown',
+                    email: m.admin_user?.email || 'Unknown',
+                    role: m.role as Role,
+                    joinedAt: m.joined_at ? new Date(m.joined_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A',
+                    status: 'active',
+                    avatar: (m.admin_user?.full_name || '??').split(' ').map((n: any) => n[0]).join('')
+                }))
+
+                // Try to also load pending invites (optional)
+                let invitedMembers: Member[] = []
+                try {
+                    const invitesRes = await inviteAPI.listPending(orgId)
+                    invitedMembers = (invitesRes.invitations || []).map((i: any) => ({
+                        id: i.id,
+                        name: i.invitee_email.split('@')[0],
+                        email: i.invitee_email,
+                        role: i.role as Role,
+                        joinedAt: new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+                        status: 'invited',
+                        avatar: i.invitee_email.charAt(0).toUpperCase()
+                    }))
+                } catch (err: any) {
+                    console.error('[Members] invites fetch failed (non-critical):', err?.message)
+                }
+
+                setMembers([...activeMembers, ...invitedMembers])
+            } catch (err: any) {
+                console.error('[Members] members fetch failed:', err?.message)
+            }
+
+            setLoading(false)
         }
-        setMembers(prev => [...prev, newMember])
-        setInviteSent(true)
-        setTimeout(() => {
-            setShowInvite(false)
-            setInviteEmail('')
-            setInviteRole('read')
-            setInviteSent(false)
-        }, 1500)
+        fetchData()
+    }, [orgId])
+
+    const handleInvite = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            await inviteAPI.send(orgId, inviteEmail, inviteRole)
+            setInviteSent(true)
+            // Local update
+            const newMember: Member = {
+                id: Date.now().toString(),
+                name: inviteEmail.split('@')[0],
+                email: inviteEmail,
+                role: inviteRole,
+                joinedAt: 'Now',
+                status: 'invited',
+                avatar: inviteEmail.charAt(0).toUpperCase(),
+            }
+            setMembers(prev => [...prev, newMember])
+            setTimeout(() => {
+                setShowInvite(false)
+                setInviteEmail('')
+                setInviteRole('read')
+                setInviteSent(false)
+            }, 1500)
+        } catch (err) {
+            console.error('Failed to send invite:', err)
+        }
     }
+
+    const orgName = org?.name || 'Organization'
 
     return (
         <div className="min-h-screen bg-[#F9F9FB] flex font-sans">
@@ -123,7 +185,9 @@ export default function MembersPage({ params }: { params: { orgId: string } }) {
                                 </svg>
                                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#F25A5A] rounded-full border-2 border-white" />
                             </button>
-                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-teal/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">SA</Link>
+                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">
+                                {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
+                            </Link>
                         </div>
                     </div>
                 </header>
@@ -147,8 +211,8 @@ export default function MembersPage({ params }: { params: { orgId: string } }) {
                     </div>
 
                     {/* Members List/Table perfectly matched to the minimal aesthetic */}
-                    <div 
-                        className={`bg-white rounded-[24px] border border-gray-100 overflow-hidden shadow-sm ${isMounted ? 'animate-up' : ''}`} 
+                    <div
+                        className={`bg-white rounded-[24px] border border-gray-100 overflow-hidden shadow-sm ${isMounted ? 'animate-up' : ''}`}
                         style={{ animationDelay: '0.15s' }}
                     >
                         <div className="overflow-x-auto">
@@ -166,8 +230,8 @@ export default function MembersPage({ params }: { params: { orgId: string } }) {
                                     {members.map((m, idx) => {
                                         const rc = roleConfig[m.role]
                                         return (
-                                            <tr 
-                                                key={m.id} 
+                                            <tr
+                                                key={`${m.id}-${m.status}-${idx}`}
                                                 className={`group border-b border-gray-50 last:border-none hover:bg-gray-50/50 transition-colors ${isMounted ? 'animate-up' : ''}`}
                                                 style={{ animationDelay: `${0.2 + idx * 0.05}s` }}
                                             >

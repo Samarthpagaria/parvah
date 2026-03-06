@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { issueAPI, authAPI } from '@/utils/backend_api_endpoints'
 
-type IssueStatus = 'open' | 'in-progress' | 'review' | 'resolved'
+type IssueStatus = 'open' | 'in_progress' | 'review' | 'resolved'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
 
 interface Issue {
@@ -21,7 +21,7 @@ interface Issue {
 
 const statusConfig: Record<IssueStatus, { label: string; color: string; text: string; dot: string }> = {
     'open': { label: 'Open', color: 'bg-[#F25A5A]/10', text: 'text-[#F25A5A]', dot: 'bg-[#F25A5A]' },
-    'in-progress': { label: 'In Progress', color: 'bg-[#576CDB]/10', text: 'text-[#576CDB]', dot: 'bg-[#576CDB]' },
+    'in_progress': { label: 'In Progress', color: 'bg-[#576CDB]/10', text: 'text-[#576CDB]', dot: 'bg-[#576CDB]' },
     'review': { label: 'Under Review', color: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-400' },
     'resolved': { label: 'Resolved', color: 'bg-[#088395]/10', text: 'text-[#088395]', dot: 'bg-[#088395]' },
 }
@@ -34,7 +34,7 @@ const priorityConfig: Record<IssuePriority, { label: string; color: string; text
 }
 
 const mockIssues: Issue[] = [
-    { id: 'ISS-001', title: 'Large pothole outside my building', category: 'Road Maintenance', priority: 'high', status: 'in-progress', location: '12B, MG Road, Koramangala', submittedAt: 'Mar 01, 2024', lastUpdate: '2 hours ago', description: 'There is a large pothole right outside the main entrance of my building.' },
+    { id: 'ISS-001', title: 'Large pothole outside my building', category: 'Road Maintenance', priority: 'high', status: 'in_progress', location: '12B, MG Road, Koramangala', submittedAt: 'Mar 01, 2024', lastUpdate: '2 hours ago', description: 'There is a large pothole right outside the main entrance of my building.' },
     { id: 'ISS-002', title: 'Street light not working for 2 weeks', category: 'Street Lighting', priority: 'medium', status: 'open', location: 'Park Avenue, Indiranagar', submittedAt: 'Mar 03, 2024', lastUpdate: '1 day ago', description: 'The street light near the park has not been working for over two weeks.' },
     { id: 'ISS-003', title: 'Overflowing garbage bin at bus stop', category: 'Cleanliness', priority: 'medium', status: 'review', location: 'Bus Stop 42, BTM Layout', submittedAt: 'Feb 28, 2024', lastUpdate: '3 hours ago', description: 'The garbage bin at the bus stop has been overflowing for 3 days.' },
     { id: 'ISS-004', title: 'Water supply disruption since morning', category: 'Water Supply', priority: 'critical', status: 'resolved', location: 'Sector 4, HSR Layout', submittedAt: 'Feb 25, 2024', lastUpdate: '5 days ago', description: 'Water supply in our area has been disrupted since 6 AM.' },
@@ -101,7 +101,7 @@ export default function UserDashboard() {
     const stats = {
         total: issues.length,
         open: issues.filter(i => i.status === 'open').length,
-        inProgress: issues.filter(i => i.status === 'in-progress' || i.status === 'review').length,
+        inProgress: issues.filter(i => i.status === 'in_progress' || i.status === 'review').length,
         resolved: issues.filter(i => i.status === 'resolved').length,
     }
 
@@ -221,13 +221,13 @@ export default function UserDashboard() {
 
                         {/* Filter chips */}
                         <div className="flex gap-2 flex-wrap mb-5">
-                            {(['all', 'open', 'in-progress', 'review', 'resolved'] as const).map(f => (
+                            {(['all', 'open', 'in_progress', 'review', 'resolved'] as const).map(f => (
                                 <button key={f} onClick={() => setFilter(f)}
                                     className={`px-3.5 py-1.5 rounded-full text-[12px] font-normal transition-all ${filter === f
                                         ? 'bg-[#201F47] text-white'
                                         : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300 hover:text-[#201F47]'
                                         }`}>
-                                    {f === 'all' ? 'All' : f === 'in-progress' ? 'In Progress' : f === 'review' ? 'Under Review' : f.charAt(0).toUpperCase() + f.slice(1)}
+                                    {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f === 'review' ? 'Under Review' : f.charAt(0).toUpperCase() + f.slice(1)}
                                 </button>
                             ))}
                         </div>

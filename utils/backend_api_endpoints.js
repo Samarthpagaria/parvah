@@ -12,7 +12,19 @@ const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000
  * Automatically attaches the JWT from localStorage and handles error responses.
  */
 async function apiFetch(endpoint, options = {}) {
-  const token = localStorage.getItem('parvah_token');
+  let useType = 'admin';
+  if (typeof window !== 'undefined') {
+    const isPublic = window.location.pathname.startsWith('/portal') ||
+      window.location.pathname.startsWith('/auth/public') ||
+      localStorage.getItem('parvah_user_type') === 'public';
+    if (isPublic && !window.location.pathname.includes('/admin')) {
+      useType = 'public';
+    }
+  }
+
+  const token = useType === 'admin'
+    ? localStorage.getItem('parvah_admin_token')
+    : localStorage.getItem('parvah_public_token');
 
   const headers = {
     'Content-Type': 'application/json',
@@ -31,7 +43,14 @@ async function apiFetch(endpoint, options = {}) {
   const data = await response.json().catch(() => ({ error: 'Response parsing failed' }));
 
   if (!response.ok) {
-    throw new Error(data.error || 'API request failed');
+    // Collect as much detail as possible for diagnosis
+    const errorMsg = data.message || data.details || data.error || 'API request failed';
+    const error = new Error(errorMsg);
+    // @ts-ignore
+    error.details = data.details;
+    // @ts-ignore
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -45,35 +64,38 @@ async function apiFetch(endpoint, options = {}) {
 export const authAPI = {
   // Admin Login
   loginAdmin: async (email, password) => {
+    localStorage.setItem('parvah_user_type', 'admin');
     const data = await apiFetch('/auth/admin/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     if (data.token) {
-      localStorage.setItem('parvah_token', data.token);
-      localStorage.setItem('parvah_user_type', 'admin');
+      localStorage.setItem('parvah_admin_token', data.token);
     }
     return data;
   },
 
   // Public User Login
   loginPublic: async (email, password) => {
+    localStorage.setItem('parvah_user_type', 'public');
     const data = await apiFetch('/auth/public/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     if (data.token) {
-      localStorage.setItem('parvah_token', data.token);
-      localStorage.setItem('parvah_user_type', 'public');
+      localStorage.setItem('parvah_public_token', data.token);
     }
     return data;
   },
 
   // Public User Register
-  registerPublic: (userData) => apiFetch('/auth/public/register', {
-    method: 'POST',
-    body: JSON.stringify(userData),
-  }),
+  registerPublic: (userData) => {
+    localStorage.setItem('parvah_user_type', 'public');
+    return apiFetch('/auth/public/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  },
 
   // Get Current Profile
   getMe: () => apiFetch('/auth/me'),
@@ -89,7 +111,9 @@ export const authAPI = {
     try {
       await apiFetch('/auth/logout', { method: 'POST' });
     } finally {
-      localStorage.removeItem('parvah_token');
+      const type = localStorage.getItem('parvah_user_type');
+      if (type === 'admin') localStorage.removeItem('parvah_admin_token');
+      else localStorage.removeItem('parvah_public_token');
       localStorage.removeItem('parvah_user_type');
     }
   },
@@ -131,6 +155,19 @@ export const orgAPI = {
   removeMember: (orgId, memberId) => apiFetch(`/organizations/${orgId}/members/${memberId}`, {
     method: 'DELETE',
   }),
+
+  // Categories
+  listCategories: (orgId) => apiFetch(`/organizations/${orgId}/categories`),
+  createCategory: (orgId, catData) => apiFetch(`/organizations/${orgId}/categories`, {
+    method: 'POST',
+    body: JSON.stringify(catData),
+  }),
+  deleteCategory: (orgId, catId) => apiFetch(`/organizations/${orgId}/categories/${catId}`, {
+    method: 'DELETE',
+  }),
+
+  // Categories for the current public user's organization (no orgId needed)
+  listMyCategories: () => apiFetch('/organizations/categories/mine'),
 };
 
 /**
@@ -169,8 +206,11 @@ export const inviteAPI = {
  */
 
 export const issueAPI = {
-  // Fetch list (filters handled automatically by backend)
-  list: () => apiFetch('/issues'),
+  // Fetch list with optional filters (e.g., { status: 'open', assigned_to: 'uuid' })
+  list: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiFetch(`/issues${query ? `?${query}` : ''}`);
+  },
 
   // Report new issue
   report: (issueData) => apiFetch('/issues', {
@@ -195,7 +235,7 @@ export const issueAPI = {
   // Assign staff
   assignStaff: (issueId, staffId) => apiFetch(`/issues/${issueId}/assign`, {
     method: 'PUT',
-    body: JSON.stringify({ admin_user_id: staffId }),
+    body: JSON.stringify({ assigned_to: staffId }),
   }),
 };
 

@@ -49,9 +49,11 @@ exports.requireRole = (allowedRoles) => async (req, res, next) => {
             return res.status(403).json({ error: 'You are not a member of this organization.' });
         }
 
+        console.log(`[ROLE CHECK] admin_user_id=${userId} | org_id=${orgId} | member_role=${member?.role ?? 'none'} | required=${allowedRoles.join('|')}`);
+
         if (!allowedRoles.includes(member.role)) {
             return res.status(403).json({
-                error: `This action requires one of the following roles: ${allowedRoles.join(', ')}. Your role: ${member.role}`,
+                error: `Access denied. Required role: ${allowedRoles.join(' or ')}. Your role: ${member.role}`,
             });
         }
 

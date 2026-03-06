@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
+import { orgAPI, issueAPI, authAPI } from '@/utils/backend_api_endpoints'
 
 interface Issue {
     id: string
@@ -22,27 +23,6 @@ const mockOrgs: Record<string, { name: string; description: string; industry: st
     'org-3': { name: 'Waste Management', description: 'Waste collection & disposal', industry: 'Environment' },
 }
 
-const staffList = ['Sarah Wilson', 'Tom Davis', 'John Davis', 'Priya Mehta', 'Raj Kumar', 'Emily Chen']
-
-const initialIssues: Record<string, Issue[]> = {
-    open: [
-        { id: '1', title: 'Pothole on Main Street', category: 'Road', priority: 'high', reporter: 'John Doe', description: 'Large pothole affecting traffic flow', createdAt: 'Mar 01', location: 'Main Street' },
-        { id: '2', title: 'Broken Street Light', category: 'Lighting', priority: 'medium', reporter: 'Jane Smith', description: 'Street light not working at night', createdAt: 'Mar 02', location: 'Park Avenue' },
-        { id: '6', title: 'Debris on Footpath', category: 'Cleanliness', priority: 'low', reporter: 'Anita Rao', description: 'Garbage dumped on the footpath', createdAt: 'Mar 04', location: 'MG Road' },
-    ],
-    inProgress: [
-        { id: '3', title: 'Water Pipe Leak', category: 'Water', priority: 'critical', reporter: 'Mike J.', assignedTo: 'Sarah Wilson', description: 'Major water leak causing wastage', createdAt: 'Mar 01', location: 'Oak Street' },
-        { id: '7', title: 'Park Bench Damaged', category: 'Parks', priority: 'medium', reporter: 'Sara Lee', assignedTo: 'Tom Davis', description: 'Bench in central park is broken', createdAt: 'Mar 03', location: 'Central Park' },
-    ],
-    review: [
-        { id: '8', title: 'Traffic Signal Down', category: 'Transport', priority: 'high', reporter: 'Vinod S.', assignedTo: 'Priya Mehta', description: 'Traffic signal at intersection not working', createdAt: 'Feb 28', location: 'Ring Road' },
-    ],
-    resolved: [
-        { id: '4', title: 'Gutter Cleaning', category: 'Maintenance', priority: 'low', reporter: 'Alice B.', assignedTo: 'Tom Davis', description: 'Gutters cleaned successfully', createdAt: 'Feb 28', location: 'Park Circle' },
-        { id: '5', title: 'Sidewalk Repair', category: 'Safety', priority: 'medium', reporter: 'Bob W.', assignedTo: 'John Davis', description: 'Sidewalk repaired and ready', createdAt: 'Feb 25', location: 'Third Street' },
-    ],
-}
-
 const priorityConfig: Record<string, { label: string; color: string; bg: string }> = {
     low: { label: 'Low', color: 'text-[#576CDB]', bg: 'bg-[#576CDB]/15' },
     medium: { label: 'Medium', color: 'text-[#088395]', bg: 'bg-[#088395]/15' },
@@ -52,8 +32,7 @@ const priorityConfig: Record<string, { label: string; color: string; bg: string 
 
 const columnConfig = [
     { key: 'open', label: 'To Do', color: 'text-gray-200', barBg: 'bg-gray-400' },
-    { key: 'inProgress', label: 'In Progress', color: 'text-[#8AA1FF]', barBg: 'bg-[#576CDB]' },
-    { key: 'review', label: 'In Review', color: 'text-[#3BD0E3]', barBg: 'bg-[#088395]' },
+    { key: 'in_progress', label: 'In Progress', color: 'text-[#8AA1FF]', barBg: 'bg-[#576CDB]' },
     { key: 'resolved', label: 'Done', color: 'text-[#9AD9D9]', barBg: 'bg-[#7AB2B2]' },
 ]
 
@@ -95,7 +74,7 @@ function IssueCard({
     }
 
     return (
-        <div 
+        <div
             draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
@@ -139,7 +118,7 @@ function IssueCard({
             </div>
 
             <h4 className="text-[15px] font-normal text-[#201F47] leading-tight mb-2 pr-4">{issue.title}</h4>
-            
+
             {issue.location && (
                 <div className="flex items-center gap-1.5 mb-4">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +155,7 @@ function IssueCard({
     )
 }
 
-function AssignModal({ issue, onAssign, onClose }: { issue: Issue; onAssign: (id: string, name: string) => void; onClose: () => void }) {
+function AssignModal({ issue, staff, onAssign, onClose }: { issue: Issue; staff: any[]; onAssign: (id: string, staff: any) => void; onClose: () => void }) {
     return (
         <div className="fixed inset-0 bg-[#201F47]/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100">
@@ -191,18 +170,24 @@ function AssignModal({ issue, onAssign, onClose }: { issue: Issue; onAssign: (id
                         </svg>
                     </button>
                 </div>
-                <div className="p-4">
-                    {staffList.map(s => (
+                <div className="p-4 max-h-[300px] overflow-y-auto custom-scrollbar-inner">
+                    {staff.map((s, idx) => (
                         <button
-                            key={s}
-                            onClick={() => onAssign(issue.id, s)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-normal transition-all hover:bg-gray-50 text-left ${issue.assignedTo === s ? 'bg-[#088395]/10 text-[#088395] border border-[#088395]/20' : 'text-[#201F47] border border-transparent'}`}
+                            key={s.id || `staff-${idx}`}
+                            onClick={() => {
+                                if (s.id) onAssign(issue.id, s);
+                                else console.error('Staff has no ID:', s);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-normal transition-all hover:bg-gray-50 text-left ${issue.assignedTo === s.full_name ? 'bg-[#088395]/10 text-[#088395] border border-[#088395]/20' : 'text-[#201F47] border border-transparent'}`}
                         >
                             <div className="w-8 h-8 rounded-full bg-[#FAFAFA] border border-gray-100 flex items-center justify-center text-gray-500 text-xs font-normal flex-shrink-0">
-                                {s.charAt(0)}
+                                {s.full_name?.charAt(0)}
                             </div>
-                            {s}
-                            {issue.assignedTo === s && (
+                            <div className="flex-1">
+                                <p className="font-medium text-[#201F47]">{s.full_name}</p>
+                                <p className="text-[11px] text-gray-400 uppercase">{s.role}</p>
+                            </div>
+                            {issue.assignedTo === s.full_name && (
                                 <span className="ml-auto text-[#088395]">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -211,43 +196,117 @@ function AssignModal({ issue, onAssign, onClose }: { issue: Issue; onAssign: (id
                             )}
                         </button>
                     ))}
+                    {staff.length === 0 && (
+                        <p className="text-center py-8 text-sm text-gray-400">No staff members found.</p>
+                    )}
                 </div>
             </div>
         </div>
     )
 }
 
-export default function OrgDashboardPage({ params }: { params: { orgId: string } }) {
-    const { orgId } = params
-    const org = mockOrgs[orgId] ?? { name: 'Organization', description: '', industry: '' }
-
-    const [issues, setIssues] = useState(initialIssues)
+export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: string }> }) {
+    const { orgId } = use(params)
+    const [org, setOrg] = useState<any>(null)
+    const [issues, setIssues] = useState<Record<string, Issue[]>>({ open: [], in_progress: [], resolved: [] })
+    const [staff, setStaff] = useState<any[]>([])
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
     const [assignTarget, setAssignTarget] = useState<Issue | null>(null)
     const [dragOverCol, setDragOverCol] = useState<string | null>(null)
 
-    const totalIssues = Object.values(issues).flat().length
-    const openCount = issues.open.length
-    const inProgressCount = issues.inProgress.length
-    const resolvedCount = issues.resolved.length
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch each independently so a single failure doesn't block everything
+                const [orgRes, userRes] = await Promise.all([
+                    orgAPI.getDetails(orgId),
+                    authAPI.getMe()
+                ])
+                setOrg(orgRes.organization)
+                setUser(userRes.user)
+            } catch (err: any) {
+                console.error('[Dashboard] org/user fetch failed:', err?.message)
+            }
 
-    const handleAssign = (issueId: string, staffName: string) => {
-        const updated = { ...issues }
-        Object.keys(updated).forEach(col => {
-            updated[col] = updated[col].map(i => i.id === issueId ? { ...i, assignedTo: staffName } : i)
-        })
-        setIssues(updated)
-        setAssignTarget(null)
+            try {
+                const issuesRes = await issueAPI.list({ org_id: orgId })
+                const rawIssues = (issuesRes.issues || []).map((i: any) => ({
+                    id: i.id,
+                    title: i.title,
+                    status: i.status || 'open',
+                    category: i.issue_categories?.name || 'Uncategorized',
+                    priority: i.priority || 'medium',
+                    reporter: i.public_users?.full_name || 'Anonymous',
+                    assignedTo: i.admin_users?.full_name,
+                    description: i.description,
+                    createdAt: new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
+                    location: i.address
+                }))
+                const grouped = {
+                    open: rawIssues.filter((i: any) => i.status === 'open'),
+                    in_progress: rawIssues.filter((i: any) => i.status === 'in_progress'),
+                    resolved: rawIssues.filter((i: any) => i.status === 'resolved'),
+                }
+                setIssues(grouped)
+            } catch (err: any) {
+                console.error('[Dashboard] issues fetch failed:', err?.message)
+            }
+
+            try {
+                const membersRes = await orgAPI.listMembers(orgId)
+                setStaff((membersRes.members || []).map((m: any) => ({
+                    id: m.admin_user?.id || m.admin_user_id,
+                    full_name: m.admin_user?.full_name || 'Unknown',
+                    role: m.role
+                })))
+            } catch (err: any) {
+                console.error('[Dashboard] members fetch failed:', err?.message)
+            }
+
+            setLoading(false)
+        }
+        fetchData()
+    }, [orgId])
+
+    const totalIssues = Object.values(issues).flat().length
+    const openCount = issues.open?.length || 0
+    const inProgressCount = issues.in_progress?.length || 0
+    const resolvedCount = issues.resolved?.length || 0
+
+    const handleAssign = async (issueId: string, staffMember: any) => {
+        if (!staffMember || !staffMember.id) {
+            console.error('Cant assign: Missing staff member ID');
+            return;
+        }
+        try {
+            await issueAPI.assignStaff(issueId, staffMember.id)
+            // Local update
+            const updated = { ...issues }
+            Object.keys(updated).forEach(col => {
+                updated[col] = updated[col].map(i => i.id === issueId ? { ...i, assignedTo: staffMember.full_name } : i)
+            })
+            setIssues(updated)
+            setAssignTarget(null)
+        } catch (err) {
+            console.error('Failed to assign staff:', err)
+        }
     }
 
-    const handleMove = (issueId: string, from: string, to: string) => {
+    const handleMove = async (issueId: string, from: string, to: string) => {
         if (from === to) return
-        const issue = issues[from].find(i => i.id === issueId)
-        if (!issue) return
-        setIssues(prev => ({
-            ...prev,
-            [from]: prev[from].filter(i => i.id !== issueId),
-            [to]: [issue, ...prev[to]],
-        }))
+        try {
+            await issueAPI.updateStatus(issueId, to as any)
+            const issue = issues[from].find(i => i.id === issueId)
+            if (!issue) return
+            setIssues(prev => ({
+                ...prev,
+                [from]: prev[from].filter(i => i.id !== issueId),
+                [to]: [issue, ...prev[to]],
+            }))
+        } catch (err) {
+            console.error('Failed to update status:', err)
+        }
     }
 
     const onDragOver = (e: React.DragEvent, colKey: string) => {
@@ -267,7 +326,7 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
 
     return (
         <div className="min-h-screen bg-[#F9F9FB] flex font-sans">
-            <OrgSidebar orgId={orgId} orgName={org.name} />
+            <OrgSidebar orgId={orgId} orgName={org?.name || 'Organization'} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Top bar */}
@@ -276,7 +335,7 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
                         <div className="flex items-center gap-2 md:gap-3 text-[14px] font-normal truncate">
                             <Link href="/admin/organizations" className="text-gray-400 hover:text-[#201F47] transition-colors hidden sm:block">Organizations</Link>
                             <span className="text-gray-300 hidden sm:block">/</span>
-                            <span className="text-gray-400">{org.name}</span>
+                            <span className="text-gray-400">{org?.name || '...'}</span>
                             <span className="text-gray-300">/</span>
                             <span className="text-[#201F47]">Dashboard</span>
                         </div>
@@ -287,7 +346,9 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
                                 </svg>
                                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#F25A5A] rounded-full border-2 border-white" />
                             </button>
-                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">SA</Link>
+                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">
+                                {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
+                            </Link>
                         </div>
                     </div>
                 </header>
@@ -296,7 +357,7 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
                     {/* Header Details */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8">
                         <div>
-                            <h1 className="text-[28px] font-normal text-[#201F47] leading-tight mb-2 tracking-tight">{org.name} Workspace</h1>
+                            <h1 className="text-[28px] font-normal text-[#201F47] leading-tight mb-2 tracking-tight">{org?.name || 'Organization'} Workspace</h1>
                             <p className="text-[15px] font-normal text-gray-500">Track and manage organizational workflow dynamically.</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
@@ -307,10 +368,6 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
                             <Link href={`/admin/organizations/${orgId}/categories`} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-gray-100 text-[13px] font-normal text-gray-600 hover:text-[#576CDB] hover:border-[#576CDB]/20 hover:bg-[#576CDB]/5 transition-all shadow-sm">
                                 <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                                 Add Category
-                            </Link>
-                            <Link href={`/admin/organizations/${orgId}/settings`} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-gray-100 text-[13px] font-normal text-gray-600 hover:text-[#F25A5A] hover:border-[#F25A5A]/20 hover:bg-[#F25A5A]/5 transition-all shadow-sm">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                Export Report
                             </Link>
                         </div>
                     </div>
@@ -329,10 +386,10 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
                                     <p className="text-[32px] font-normal text-[#201F47] leading-none tracking-tight">{stat.value}</p>
                                 </div>
                                 <div className={`w-10 h-10 rounded-xl ${stat.accent} flex items-center justify-center opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all`}>
-                                   {stat.label === 'Total Issues' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
-                                   {stat.label === 'Open' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-                                   {stat.label === 'In Progress' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>}
-                                   {stat.label === 'Resolved' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                    {stat.label === 'Total Issues' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
+                                    {stat.label === 'Open' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+                                    {stat.label === 'In Progress' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>}
+                                    {stat.label === 'Resolved' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                                 </div>
                             </div>
                         ))}
@@ -340,7 +397,7 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
 
                     {/* Main Workspace Layout */}
                     <div className="flex flex-col gap-6 md:gap-6 flex-1 min-h-0">
-                        
+
                         {/* Interactive Kanban Board - Dark Theme Extension */}
                         <div className="rounded-[24px] bg-gradient-to-br from-[#1b1a3e] via-[#201F47] to-[#14122d] shadow-2xl p-4 md:p-5 border border-[#ffffff10] relative flex flex-col min-h-[460px]">
                             {/* Decorative background glow */}
@@ -356,8 +413,8 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
                             <div className="flex-1 overflow-x-auto overflow-y-hidden z-10 custom-scrollbar pb-2">
                                 <div className="flex gap-3 min-w-max h-full">
                                     {columnConfig.map(col => (
-                                        <div 
-                                            key={col.key} 
+                                        <div
+                                            key={col.key}
                                             onDragOver={(e) => onDragOver(e, col.key)}
                                             onDragLeave={() => setDragOverCol(null)}
                                             onDrop={(e) => onDrop(e, col.key)}
@@ -371,12 +428,12 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
                                                     {issues[col.key]?.length ?? 0}
                                                 </span>
                                             </div>
-                                            
+
                                             {/* Cards Space - Vertically scrollable internal area */}
                                             <div className="space-y-2.5 flex-1 overflow-y-auto pr-1.5 custom-scrollbar-inner pb-2">
                                                 {(issues[col.key] ?? []).map((issue, i) => (
-                                                    <div 
-                                                        key={issue.id} 
+                                                    <div
+                                                        key={issue.id}
                                                         className="animate-in fade-in slide-in-from-bottom-2"
                                                         style={{ animationDelay: `${i * 50}ms` }}
                                                     >
@@ -441,6 +498,7 @@ export default function OrgDashboardPage({ params }: { params: { orgId: string }
             {assignTarget && (
                 <AssignModal
                     issue={assignTarget}
+                    staff={staff}
                     onAssign={handleAssign}
                     onClose={() => setAssignTarget(null)}
                 />

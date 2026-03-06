@@ -2,20 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { issueAPI } from '@/utils/backend_api_endpoints'
+import { issueAPI, orgAPI } from '@/utils/backend_api_endpoints'
 
-const categories = [
-    'Road Maintenance',
-    'Street Lighting',
-    'Water Supply',
-    'Cleanliness & Sanitation',
-    'Parks & Recreation',
-    'Drainage & Sewage',
-    'Transport & Traffic',
-    'Public Safety',
-    'Noise Pollution',
-    'Other',
-]
+
 
 const priorities = [
     { value: 'low', label: 'Low', desc: 'Minor inconvenience', color: 'border-blue-200 bg-blue-50 text-blue-700', dot: 'bg-blue-400' },
@@ -258,7 +247,7 @@ function MapLocationPicker({
 export default function NewIssuePage() {
     const [form, setForm] = useState({
         title: '',
-        category: '',
+        category_id: '',
         priority: 'medium',
         description: '',
         latitude: null as number | null,
@@ -270,6 +259,13 @@ export default function NewIssuePage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [newId, setNewId] = useState('')
+    const [categories, setCategories] = useState<{ id: string; name: string; color: string }[]>([])
+
+    useEffect(() => {
+        orgAPI.listMyCategories()
+            .then((res: any) => setCategories(res.categories || []))
+            .catch(() => setCategories([]))
+    }, [])
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -286,10 +282,9 @@ export default function NewIssuePage() {
         try {
             const res = await issueAPI.report({
                 title: form.title,
-                category: form.category,
+                category_id: form.category_id || undefined,
                 priority: form.priority,
                 description: form.description,
-                location: `${form.latitude},${form.longitude}`, // Adjust based on backend expectation
                 latitude: form.latitude,
                 longitude: form.longitude
             })
@@ -303,7 +298,7 @@ export default function NewIssuePage() {
         }
     }
 
-    const canNext1 = !!form.title && !!form.category && !!form.priority
+    const canNext1 = !!form.title && !!form.category_id && !!form.priority
     const canNext2 = !!form.description && form.latitude !== null && form.longitude !== null
 
     if (submitted) {
@@ -405,10 +400,13 @@ export default function NewIssuePage() {
                                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                                         Category <span className="text-red-400">*</span>
                                     </label>
-                                    <select name="category" value={form.category} onChange={handleChange} required
+                                    <select name="category_id" value={form.category_id} onChange={handleChange} required
                                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all bg-white">
                                         <option value="">Select a category...</option>
-                                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                        {categories.length === 0 && (
+                                            <option disabled value="">Loading categories...</option>
+                                        )}
+                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -515,7 +513,7 @@ export default function NewIssuePage() {
                                 <div className="px-6 py-5 space-y-4">
                                     {[
                                         { label: 'Issue Title', value: form.title },
-                                        { label: 'Category', value: form.category },
+                                        { label: 'Category', value: categories.find(c => c.id === form.category_id)?.name ?? form.category_id },
                                         { label: 'Priority', value: priorities.find(p => p.value === form.priority)?.label ?? '' },
                                         { label: 'Updates via', value: form.contactPreference === 'both' ? 'Email & SMS' : form.contactPreference.toUpperCase() },
                                     ].map(f => (

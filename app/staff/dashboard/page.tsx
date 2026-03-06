@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { issueAPI, authAPI } from '@/utils/backend_api_endpoints'
 
-type Status = 'assigned' | 'in-progress' | 'completed'
+type Status = 'open' | 'in_progress' | 'resolved'
 type Priority = 'low' | 'medium' | 'high' | 'critical'
 
 interface AssignedIssue {
@@ -27,16 +28,11 @@ const priorityConfig: Record<Priority, { label: string; dot: string; badge: stri
 }
 
 const statusConfig: Record<Status, { label: string; color: string; next: Status | null; nextLabel: string }> = {
-  'assigned': { label: 'Pending', color: 'text-amber-600 bg-amber-50', next: 'in-progress', nextLabel: 'Start Working' },
-  'in-progress': { label: 'In Progress', color: 'text-blue-600 bg-blue-50', next: 'completed', nextLabel: 'Mark Complete' },
-  'completed': { label: 'Completed', color: 'text-teal-600 bg-teal-50', next: null, nextLabel: '' },
+  'open': { label: 'Pending', color: 'text-amber-600 bg-amber-50', next: 'in_progress', nextLabel: 'Start Working' },
+  'in_progress': { label: 'In Progress', color: 'text-blue-600 bg-blue-50', next: 'resolved', nextLabel: 'Mark Complete' },
+  'resolved': { label: 'Completed', color: 'text-teal-600 bg-teal-50', next: null, nextLabel: '' },
 }
 
-const mockIssues: AssignedIssue[] = [
-  { id: '1', title: 'Pothole on Main Street', category: 'Road Maintenance', description: 'Large pothole affecting traffic flow near the market area. Requires immediate asphalt repair.', priority: 'high', reporter: 'John Doe', assignedAt: 'Mar 03', status: 'in-progress', location: 'Main Street, Downtown', notes: 'Currently assessing damage. Repair materials ordered.' },
-  { id: '2', title: 'Water Pipe Leak', category: 'Water Supply', description: 'Major water leak causing significant wastage near residential area.', priority: 'critical', reporter: 'Mike Johnson', assignedAt: 'Mar 01', status: 'in-progress', location: 'Oak Street', notes: 'Leak isolated. Awaiting replacement pipe delivery.' },
-  { id: '3', title: 'Broken Street Light', category: 'Street Lighting', description: 'Street light not functioning during night hours, creating safety hazard.', priority: 'medium', reporter: 'Jane Smith', assignedAt: 'Mar 04', status: 'assigned', location: 'Park Avenue' },
-]
 
 function UpdateModal({ issue, onUpdate, onClose }: { issue: AssignedIssue; onUpdate: (id: string, s: Status, n?: string) => void; onClose: () => void }) {
   const [notes, setNotes] = useState(issue.notes ?? '')
@@ -79,7 +75,7 @@ function UpdateModal({ issue, onUpdate, onClose }: { issue: AssignedIssue; onUpd
                 {nextLabel}
               </button>
             ) : (
-              <button onClick={() => onUpdate(issue.id, 'completed', notes)} className="flex-1 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+              <button onClick={() => onUpdate(issue.id, 'resolved', notes)} className="flex-1 py-2.5 text-sm font-medium text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
                 Already Completed
               </button>
             )}
@@ -91,23 +87,60 @@ function UpdateModal({ issue, onUpdate, onClose }: { issue: AssignedIssue; onUpd
 }
 
 export default function StaffDashboard() {
-  const [issues, setIssues] = useState<AssignedIssue[]>(mockIssues)
+  const [issues, setIssues] = useState<AssignedIssue[]>([])
+  const [user, setUser] = useState<{ full_name: string; id: string } | null>(null)
   const [selected, setSelected] = useState<AssignedIssue | null>(null)
   const [filter, setFilter] = useState<'all' | Status>('all')
+  const [loading, setLoading] = useState(true)
 
-  const handleUpdate = (id: string, newStatus: Status, notes?: string) => {
-    setIssues(prev => prev.map(i => i.id === id ? { ...i, status: newStatus, notes } : i))
-    setSelected(null)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const me = await authAPI.getMe()
+        setUser(me.user)
+
+        const data = await issueAPI.list({ assigned_to: me.user.id })
+        const list = data.issues || []
+
+        setIssues(list.map((i: any) => ({
+          id: i.id,
+          title: i.title,
+          category: i.issue_categories?.name || 'General',
+          description: i.description,
+          priority: i.priority,
+          reporter: i.public_users?.full_name || 'Citizen',
+          assignedAt: new Date(i.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+          status: i.status === 'open' ? 'open' : i.status === 'resolved' ? 'resolved' : 'in_progress',
+          location: i.address || 'Local Area',
+          notes: i.resolution_note
+        })))
+      } catch (err) {
+        console.error('Staff dashboard fetch error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const handleUpdate = async (id: string, newStatus: Status, notes?: string) => {
+    try {
+      await issueAPI.updateStatus(id, newStatus)
+      setIssues(prev => prev.map(i => i.id === id ? { ...i, status: newStatus, notes } : i))
+      setSelected(null)
+    } catch (err) {
+      alert('Failed to update status')
+    }
   }
 
   const filtered = filter === 'all' ? issues : issues.filter(i => i.status === filter)
   const stats = {
     total: issues.length,
-    pending: issues.filter(i => i.status === 'assigned').length,
-    inProgress: issues.filter(i => i.status === 'in-progress').length,
-    completed: issues.filter(i => i.status === 'completed').length,
+    pending: issues.filter(i => i.status === 'open').length,
+    inProgress: issues.filter(i => i.status === 'in_progress').length,
+    completed: issues.filter(i => i.status === 'resolved').length,
   }
-  const critical = issues.filter(i => i.priority === 'critical' && i.status !== 'completed')
+  const critical = issues.filter(i => i.priority === 'critical' && i.status !== 'resolved')
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -125,11 +158,13 @@ export default function StaffDashboard() {
           </Link>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-gray-800">Sarah Wilson</p>
-              <p className="text-xs text-gray-400">City Municipality</p>
+              <p className="text-sm font-semibold text-gray-800">{user?.full_name || 'Staff'}</p>
+              <p className="text-xs text-gray-400">Organization Staff</p>
             </div>
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">SW</div>
-            <button onClick={() => window.location.href = '/admin/login'} className="text-sm text-gray-400 hover:text-gray-600 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">Logout</button>
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+              {user?.full_name?.split(' ').map(n => n[0]).join('') || 'S'}
+            </div>
+            <button onClick={async () => { await authAPI.logout(); window.location.href = '/admin/login' }} className="text-sm text-gray-400 hover:text-gray-600 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">Logout</button>
           </div>
         </div>
       </header>
@@ -170,7 +205,7 @@ export default function StaffDashboard() {
 
         {/* Filters */}
         <div className="flex items-center gap-2 mb-5 flex-wrap">
-          {(['all', 'assigned', 'in-progress', 'completed'] as const).map(f => (
+          {(['all', 'open', 'in_progress', 'resolved'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -179,7 +214,7 @@ export default function StaffDashboard() {
                 : 'bg-white text-gray-500 border border-gray-200 hover:border-gray-300'
                 }`}
             >
-              {f === 'all' ? 'All Issues' : f === 'assigned' ? 'Pending' : f === 'in-progress' ? 'In Progress' : 'Completed'}
+              {f === 'all' ? 'All Issues' : f === 'open' ? 'Pending' : f === 'in_progress' ? 'In Progress' : 'Completed'}
             </button>
           ))}
           <span className="text-xs text-gray-400 ml-auto">{filtered.length} showing</span>
@@ -228,7 +263,7 @@ export default function StaffDashboard() {
                         <span className="text-[10px] text-gray-300">·</span>
                         <span className="text-[10px] text-gray-400">{issue.assignedAt}</span>
                       </div>
-                      {issue.status !== 'completed' && (
+                      {issue.status !== 'resolved' && (
                         <button
                           onClick={() => setSelected(issue)}
                           className="text-xs font-semibold text-purple-600 hover:text-purple-700 bg-purple-50 hover:bg-purple-100 px-4 py-1.5 rounded-xl transition-colors"

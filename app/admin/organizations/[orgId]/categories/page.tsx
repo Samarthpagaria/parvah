@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
+import { orgAPI, authAPI } from '@/utils/backend_api_endpoints'
 
 const mockOrgs: Record<string, string> = {
     'org-1': 'City Municipality',
@@ -23,10 +24,12 @@ const initialCategories: Category[] = [
 
 const colorOptions = ['#F25A5A', '#576CDB', '#088395', '#7AB2B2', '#201F47', '#8b5cf6', '#f59e0b', '#ec4899']
 
-export default function CategoriesPage({ params }: { params: { orgId: string } }) {
-    const { orgId } = params
-    const orgName = mockOrgs[orgId] ?? 'Organization'
-    const [categories, setCategories] = useState<Category[]>(initialCategories)
+export default function CategoriesPage({ params }: { params: Promise<{ orgId: string }> }) {
+    const { orgId } = use(params)
+    const [org, setOrg] = useState<any>(null)
+    const [categories, setCategories] = useState<Category[]>([])
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
     const [showAdd, setShowAdd] = useState(false)
     const [newName, setNewName] = useState('')
     const [newDesc, setNewDesc] = useState('')
@@ -35,26 +38,70 @@ export default function CategoriesPage({ params }: { params: { orgId: string } }
 
     useEffect(() => {
         setIsMounted(true)
-    }, [])
+        const fetchData = async () => {
+            try {
+                const [orgRes, userRes] = await Promise.all([
+                    orgAPI.getDetails(orgId),
+                    authAPI.getMe()
+                ])
+                setOrg(orgRes.organization)
+                setUser(userRes.user)
+            } catch (err: any) {
+                console.error('[Categories] org fetch failed:', err?.message)
+            }
 
-    const handleAdd = (e: React.FormEvent) => {
+            try {
+                const catRes = await orgAPI.listCategories(orgId)
+                setCategories((catRes.categories || []).map((c: any) => ({
+                    id: c.id,
+                    name: c.name,
+                    color: c.color || '#088395',
+                    description: c.description,
+                    issueCount: 0
+                })))
+            } catch (err: any) {
+                console.error('[Categories] categories fetch failed:', err?.message)
+            }
+
+            setLoading(false)
+        }
+        fetchData()
+    }, [orgId])
+
+    const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault()
-        setCategories(prev => [...prev, {
-            id: Date.now().toString(),
-            name: newName,
-            color: newColor,
-            issueCount: 0,
-            description: newDesc,
-        }])
-        setNewName('')
-        setNewDesc('')
-        setNewColor('#088395')
-        setShowAdd(false)
+        try {
+            const res = await orgAPI.createCategory(orgId, {
+                name: newName,
+                color: newColor,
+                description: newDesc
+            })
+            setCategories(prev => [...prev, {
+                id: res.category.id,
+                name: res.category.name,
+                color: res.category.color,
+                issueCount: 0,
+                description: res.category.description,
+            }])
+            setNewName('')
+            setNewDesc('')
+            setNewColor('#088395')
+            setShowAdd(false)
+        } catch (err) {
+            console.error('Failed to create category:', err)
+        }
     }
 
-    const handleDelete = (id: string) => {
-        setCategories(prev => prev.filter(c => c.id !== id))
+    const handleDelete = async (id: string) => {
+        try {
+            await orgAPI.deleteCategory(orgId, id)
+            setCategories(prev => prev.filter(c => c.id !== id))
+        } catch (err) {
+            console.error('Failed to delete category:', err)
+        }
     }
+
+    const orgName = org?.name || 'Organization'
 
     return (
         <div className="min-h-screen bg-[#F9F9FB] flex font-sans">
@@ -79,7 +126,7 @@ export default function CategoriesPage({ params }: { params: { orgId: string } }
                   animation: fadeIn 0.4s ease forwards;
                 }
             `}</style>
-            
+
             <OrgSidebar orgId={orgId} orgName={orgName} />
 
             <div className="flex-1 flex flex-col min-w-0">
@@ -100,7 +147,9 @@ export default function CategoriesPage({ params }: { params: { orgId: string } }
                                 </svg>
                                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#F25A5A] rounded-full border-2 border-white" />
                             </button>
-                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-teal/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">SA</Link>
+                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">
+                                {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
+                            </Link>
                         </div>
                     </div>
                 </header>
@@ -134,7 +183,7 @@ export default function CategoriesPage({ params }: { params: { orgId: string } }
                                     </svg>
                                 </button>
                             </div>
-                            
+
                             <form onSubmit={handleAdd} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -186,8 +235,8 @@ export default function CategoriesPage({ params }: { params: { orgId: string } }
                     {/* Categories grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {categories.map((cat, idx) => (
-                            <div 
-                                key={cat.id} 
+                            <div
+                                key={cat.id}
                                 className={`group bg-white rounded-[20px] border border-gray-100 p-5 flex flex-col hover:shadow-md hover:shadow-gray-200/40 transition-all duration-300 hover:-translate-y-0.5 ${isMounted ? 'animate-up' : ''}`}
                                 style={{ animationDelay: `${0.15 + idx * 0.05}s` }}
                             >
@@ -206,7 +255,7 @@ export default function CategoriesPage({ params }: { params: { orgId: string } }
                                         </svg>
                                     </button>
                                 </div>
-                                
+
                                 <div className="flex-1 mb-[14px]">
                                     <div className="flex items-center gap-2 mb-1">
                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />

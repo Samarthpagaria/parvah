@@ -29,12 +29,14 @@ const loginAdmin = async (req, res) => {
       .single();
 
     if (adminError || !adminUser) {
+      console.warn(`[loginAdmin:DENIED] user=${data.user.id} - Not found or inactive`);
       return res
         .status(403)
         .json({ error: "Access denied. Not an admin account." });
     }
 
     // Step 3 — Return JWT + admin profile
+    console.log(`[loginAdmin:SUCCESS] admin=${adminUser.id} email=${adminUser.email}`);
     res.json({
       token: data.session.access_token,
       user: {
@@ -46,7 +48,7 @@ const loginAdmin = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("loginAdmin error:", err.message);
+    console.error("loginAdmin fatal error:", err.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -80,12 +82,14 @@ const loginPublicUser = async (req, res) => {
       .single();
 
     if (userError || !publicUser) {
+      console.warn(`[loginPublic:DENIED] user=${data.user.id} - Not found or inactive`);
       return res
         .status(403)
         .json({ error: "Access denied. Not a public user account." });
     }
 
     // Step 3 — Return JWT + user profile
+    console.log(`[loginPublic:SUCCESS] user=${publicUser.id} org=${publicUser.org_id}`);
     res.json({
       token: data.session.access_token,
       user: {
@@ -97,7 +101,7 @@ const loginPublicUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("loginPublicUser error:", err.message);
+    console.error("loginPublicUser fatal error:", err.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -106,7 +110,7 @@ const loginPublicUser = async (req, res) => {
 // POST /api/auth/public/register
 const registerPublicUser = async (req, res) => {
   try {
-    const { email, password, full_name, phone } = req.body;
+    const { email, password, full_name, phone, org_code } = req.body;
 
     if (!email || !password || !full_name) {
       return res
@@ -114,7 +118,25 @@ const registerPublicUser = async (req, res) => {
         .json({ error: "Email, password and full name are required" });
     }
 
-    // Step 1 — Create auth account in Supabase Auth
+    if (!org_code) {
+      return res.status(400).json({ error: "Organization code is required" });
+    }
+
+    // Step 1 — Verify the organization code
+    console.log(`[registerPublic:VERIFY_CODE] code=${org_code}`);
+    const { data: org, error: orgError } = await supabaseAdmin
+      .from("organizations")
+      .select("id, name")
+      .eq("join_code", org_code)
+      .eq("is_active", true)
+      .single();
+
+    if (orgError || !org) {
+      console.warn(`[registerPublic:INVALID_CODE] code=${org_code}`);
+      return res.status(400).json({ error: "Invalid organization code" });
+    }
+
+    // Step 2 — Create auth account in Supabase Auth
     const { data, error } = await supabaseAdmin.auth.signUp({
       email,
       password,
@@ -124,7 +146,8 @@ const registerPublicUser = async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
 
-    // Step 2 — Create profile in public_users table
+    // Step 3 — Create profile in public_users table, linked to the org
+    console.log(`[registerPublic:DB_INSERT] user=${data.user.id} email=${email} org=${org.id}`);
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from("public_users")
       .insert({
@@ -132,12 +155,13 @@ const registerPublicUser = async (req, res) => {
         email,
         full_name,
         phone: phone || null,
+        org_id: org.id,
       })
       .select()
       .single();
 
     if (insertError) {
-      console.error("Insert public_user error:", insertError.message);
+      console.error("[registerPublic:DB_INSERT_ERROR]", insertError.message);
       return res.status(500).json({ error: "Failed to create user profile" });
     }
 
@@ -147,10 +171,11 @@ const registerPublicUser = async (req, res) => {
         id: newUser.id,
         email: newUser.email,
         full_name: newUser.full_name,
+        org_id: newUser.org_id,
       },
     });
   } catch (err) {
-    console.error("registerPublicUser error:", err.message);
+    console.error("registerPublicUser fatal error:", err.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -159,6 +184,8 @@ const registerPublicUser = async (req, res) => {
 // POST /api/auth/logout
 const logout = async (req, res) => {
   try {
+    const userId = req.user?.id;
+    console.log(`[logout] user=${userId}`);
     // Invalidate the session in Supabase
     await supabaseAdmin.auth.signOut();
 
@@ -175,6 +202,7 @@ const getMe = async (req, res) => {
   try {
     // req.user is already set by auth middleware
     const userId = req.user.id;
+    console.log(`[getMe] Fetching profile for user=${userId}`);
 
     // Check admin_users first
     const { data: adminUser } = await supabaseAdmin
@@ -204,6 +232,7 @@ const getMe = async (req, res) => {
       });
     }
 
+    console.warn(`[getMe:NOT_FOUND] user=${userId}`);
     res.status(404).json({ error: "User profile not found" });
   } catch (err) {
     console.error("getMe error:", err.message);
@@ -217,6 +246,7 @@ const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const { full_name, avatar_url, phone, address } = req.body;
+    console.log(`[updateProfile] user=${userId}`);
 
     // Try updating admin_users first
     const { data: adminUser } = await supabaseAdmin
@@ -226,6 +256,7 @@ const updateProfile = async (req, res) => {
       .single();
 
     if (adminUser) {
+      console.log(`[updateProfile:ADMIN] user=${userId}`);
       const { data, error } = await supabaseAdmin
         .from("admin_users")
         .update({ full_name, avatar_url })
@@ -238,6 +269,7 @@ const updateProfile = async (req, res) => {
     }
 
     // Otherwise update public_users
+    console.log(`[updateProfile:PUBLIC] user=${userId}`);
     const { data, error } = await supabaseAdmin
       .from("public_users")
       .update({ full_name, avatar_url, phone, address })

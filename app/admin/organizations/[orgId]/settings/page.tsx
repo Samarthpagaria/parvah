@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { orgAPI, authAPI } from '@/utils/backend_api_endpoints'
 
 const mockOrgs: Record<string, { name: string; slug: string; industry: string; email: string; phone: string; address: string; description: string }> = {
     'org-1': { name: 'City Municipality', slug: 'city-municipality', industry: 'Government', email: 'admin@city.gov', phone: '+91 98765 43210', address: 'City Hall, Main Street, Downtown', description: 'Urban infrastructure and civic governance.' },
@@ -10,25 +12,67 @@ const mockOrgs: Record<string, { name: string; slug: string; industry: string; e
     'org-3': { name: 'Waste Management', slug: 'waste-management', industry: 'Environment', email: 'waste@city.gov', phone: '+91 76543 21098', address: 'BBMP Waste Facility, Ring Road', description: 'Waste collection, processing and disposal.' },
 }
 
-export default function SettingsPage({ params }: { params: { orgId: string } }) {
-    const { orgId } = params
-    const orgData = mockOrgs[orgId] ?? { name: 'Organization', slug: '', industry: '', email: '', phone: '', address: '', description: '' }
-    const [form, setForm] = useState(orgData)
+export default function SettingsPage({ params }: { params: Promise<{ orgId: string }> }) {
+    const { orgId } = use(params)
+    const router = useRouter()
+    const [form, setForm] = useState({ name: '', slug: '', industry: 'Government', email: '', phone: '', address: '', description: '' })
+    const [user, setUser] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
     const [saved, setSaved] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
-    useEffect(() => { setTimeout(() => setIsMounted(true), 50) }, [])
+    useEffect(() => {
+        setIsMounted(true)
+        const fetchData = async () => {
+            try {
+                const [orgRes, userRes] = await Promise.all([
+                    orgAPI.getDetails(orgId),
+                    authAPI.getMe()
+                ])
+                const o = orgRes.organization
+                setForm({
+                    name: o.name || '',
+                    slug: o.slug || '',
+                    industry: o.industry || 'Government',
+                    email: o.email || '',
+                    phone: o.phone || '',
+                    address: o.address || '',
+                    description: o.description || ''
+                })
+                setUser(userRes.user)
+            } catch (err) {
+                console.error('Failed to fetch settings:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [orgId])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
         setSaved(false)
     }
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
+        try {
+            await orgAPI.update(orgId, form)
+            setSaved(true)
+            setTimeout(() => setSaved(false), 3000)
+        } catch (err) {
+            console.error('Failed to update settings:', err)
+        }
+    }
+
+    const handleDelete = async () => {
+        try {
+            await orgAPI.deactivate(orgId)
+            router.push('/admin/organizations')
+        } catch (err) {
+            console.error('Failed to deactivate organization:', err)
+        }
     }
 
     const inputClass = "w-full px-4 py-3 text-[14px] font-normal text-[#201F47] border border-gray-200 rounded-[14px] focus:outline-none focus:ring-2 focus:ring-[#088395]/20 focus:border-[#088395] transition-all bg-white placeholder-gray-300"
@@ -56,7 +100,9 @@ export default function SettingsPage({ params }: { params: { orgId: string } }) 
                                 </svg>
                                 <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#F25A5A] rounded-full border-2 border-white" />
                             </button>
-                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">SA</Link>
+                            <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">
+                                {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
+                            </Link>
                         </div>
                     </div>
                 </header>
@@ -200,7 +246,11 @@ export default function SettingsPage({ params }: { params: { orgId: string } }) 
                                         <button type="button" onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2.5 text-[13px] font-normal text-gray-500 bg-white border border-gray-200 rounded-[12px] hover:bg-gray-50 transition-colors">
                                             Cancel
                                         </button>
-                                        <button type="button" className="px-4 py-2.5 text-[13px] font-normal text-white bg-[#F25A5A] hover:bg-red-600 rounded-[12px] transition-colors shadow-sm">
+                                        <button
+                                            type="button"
+                                            onClick={handleDelete}
+                                            className="px-4 py-2.5 text-[13px] font-normal text-white bg-[#F25A5A] hover:bg-red-600 rounded-[12px] transition-colors shadow-sm"
+                                        >
                                             Confirm Delete
                                         </button>
                                     </div>

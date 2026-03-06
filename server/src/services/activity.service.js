@@ -19,8 +19,21 @@ exports.logActivity = async ({
   action,
   oldValue = null,
   newValue = null,
+  orgId = null,
 }) => {
   try {
+    let finalOrgId = orgId;
+
+    // If orgId not provided, fetch it from issue to maintain DB rule
+    if (!finalOrgId && issueId) {
+      const { data: issue } = await supabaseAdmin
+        .from('issues')
+        .select('org_id')
+        .eq('id', issueId)
+        .single();
+      if (issue) finalOrgId = issue.org_id;
+    }
+
     const { error } = await supabaseAdmin.from('issue_activity_log').insert({
       issue_id: issueId,
       actor_id: actorId,
@@ -28,6 +41,7 @@ exports.logActivity = async ({
       action,
       old_value: oldValue,
       new_value: newValue,
+      org_id: finalOrgId,
     });
 
     if (error) {

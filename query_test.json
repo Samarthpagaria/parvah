@@ -1,0 +1,80 @@
+{
+  "error": null,
+  "data": [
+    {
+      "id": "778ed23b-fb7e-472f-9c84-c0804ce82a44",
+      "name": "Rish-Hat",
+      "slug": "rish-hat",
+      "description": "abc",
+      "industry": "Other",
+      "logo_url": null,
+      "owner_admin_id": "32147bb8-c82d-4a1e-9fc7-6082cde33e2e",
+      "is_active": true,
+      "created_at": "2026-03-05T11:08:35.961882+00:00",
+      "updated_at": "2026-03-06T10:19:10.074957+00:00",
+      "join_code": "Org01",
+      "owner": {
+        "id": "32147bb8-c82d-4a1e-9fc7-6082cde33e2e",
+        "email": "rishabhhatlunkar305@gmail.com",
+        "full_name": "Rishabh Hatlunkar"
+      }
+    },
+    {
+      "id": "86273c4b-e3cd-4d38-a8df-7ded275634eb",
+      "name": "org1",
+      "slug": "org1",
+      "description": "wJKUAHKW,JDWKAMBDMANSBQ,KW",
+      "industry": "Utilities",
+      "logo_url": null,
+      "owner_admin_id": "f3a50853-ada1-41f3-97b7-55c256361f1f",
+      "is_active": true,
+      "created_at": "2026-03-06T09:20:42.909148+00:00",
+      "updated_at": "2026-03-06T10:19:14.850814+00:00",
+      "join_code": "Org02",
+      "owner": {
+        "id": "f3a50853-ada1-41f3-97b7-55c256361f1f",
+        "email": "urusashk9@gmail.com",
+        "full_name": "Urusa"
+      }
+    },
+    {
+      "id": "e5167338-07ae-471d-bf10-464d5eb6a7a1",
+      "name": "Test Org",
+      "slug": "test-org-temp-1772788524571",
+      "description": null,
+      "industry": "",
+      "logo_url": null,
+      "owner_admin_id": "f3a50853-ada1-41f3-97b7-55c256361f1f",
+      "is_active": true,
+      "created_at": "2026-03-06T09:15:27.192755+00:00",
+      "updated_at": "2026-03-06T10:19:19.748966+00:00",
+      "join_code": "Org03",
+      "owner": {
+        "id": "f3a50853-ada1-41f3-97b7-55c256361f1f",
+        "email": "urusashk9@gmail.com",
+        "full_name": "Urusa"
+      }
+    },
+    {
+      "id": "e6539cad-15d4-4add-b715-fe7d1434c43a",
+      "name": "Test 1772794151002",
+      "slug": "test-1772794151003",
+      "description": null,
+      "industry": null,
+      "logo_url": null,
+      "owner_admin_id": "f3a50853-ada1-41f3-97b7-55c256361f1f",
+      "is_active": true,
+      "created_at": "2026-03-06T10:49:13.666549+00:00",
+      "updated_at": "2026-03-06T10:49:13.666549+00:00",
+      "join_code": "T1772794151003",
+      "owner": {
+        "id": "f3a50853-ada1-41f3-97b7-55c256361f1f",
+        "email": "urusashk9@gmail.com",
+        "full_name": "Urusa"
+      }
+    }
+  ],
+  "count": null,
+  "status": 200,
+  "statusText": "OK"
+}

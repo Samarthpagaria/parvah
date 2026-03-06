@@ -25,6 +25,12 @@ router.post('/:issueId/upvote', authenticate, issuesController.upvoteIssue);
 // GET /api/issues/:issueId/activity — Admin or Reporter
 router.get('/:issueId/activity', authenticate, issuesController.getIssueActivity);
 
+// GET /api/issues/:issueId/comments — Admin or Reporter
+router.get('/:issueId/comments', authenticate, issuesController.getComments);
+
+// POST /api/issues/:issueId/comments — Admin or Reporter
+router.post('/:issueId/comments', authenticate, issuesController.addComment);
+
 // GET /api/issues/:issueId/attachments — Admin or Reporter
 router.get('/:issueId/attachments', authenticate, issuesController.getAttachments);
 
@@ -39,11 +45,11 @@ router.put('/:issueId', authenticate, requireAdmin, issuesController.updateIssue
 // PUT /api/issues/:issueId/status — edit role+ or assigned staff
 router.put('/:issueId/status', authenticate, requireAdmin, issuesController.updateIssueStatus);
 
-// PUT /api/issues/:issueId/assign — edit role+
-router.put('/:issueId/assign', authenticate, requireAdmin, requireRole(['owner', 'edit']), issuesController.assignIssue);
+// PUT /api/issues/:issueId/assign — owner or staff
+router.put('/:issueId/assign', authenticate, requireAdmin, requireRole(['owner', 'staff']), issuesController.assignIssue);
 
-// PUT /api/issues/:issueId/priority — edit role+
-router.put('/:issueId/priority', authenticate, requireAdmin, requireRole(['owner', 'edit']), issuesController.updateIssuePriority);
+// PUT /api/issues/:issueId/priority — owner or staff
+router.put('/:issueId/priority', authenticate, requireAdmin, requireRole(['owner', 'staff']), issuesController.updateIssuePriority);
 
 // DELETE /api/issues/:issueId — Org Admin / Super Admin only
 router.delete('/:issueId', authenticate, requireAdmin, requireRole(['owner']), issuesController.deleteIssue);

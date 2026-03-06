@@ -50,9 +50,16 @@ exports.sendNotification = async ({
 
         if (recipients.length === 0) return;
 
+        let finalOrgId = orgId;
+        if (!finalOrgId && issueId) {
+            const { data } = await supabaseAdmin.from('issues').select('org_id').eq('id', issueId).single();
+            if (data) finalOrgId = data.org_id;
+        }
+
         const rows = recipients.map(({ id, type: rType }) => ({
             recipient_id: id,
             recipient_type: rType,
+            org_id: finalOrgId || null,
             issue_id: issueId || null,
             type,
             title,

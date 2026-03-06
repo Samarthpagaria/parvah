@@ -1,12 +1,12 @@
 // routes/analytics.routes.js
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const { requireAdmin } = require('../middleware/requireAdmin');
-const analyticsController = require('../controllers/analytics.controller');
+const auth = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
+const analyticsController = require('../controllers/analytics.controllers');
 
 // All analytics routes require authentication + admin role
-router.use(authenticate);
+router.use(auth);
 router.use(requireAdmin);
 
 // GET /api/analytics/overview/:orgId

@@ -14,6 +14,7 @@ const requireAdmin = async (req, res, next) => {
       return res.status(401).json({ error: "Unauthorized." });
     }
 
+    console.log(`[requireAdmin] Checking userId=${userId} in admin_users`);
     const { data: adminUser, error } = await supabaseAdmin
       .from("admin_users")
       .select("id, email, full_name, is_super_admin, is_active")
@@ -21,6 +22,7 @@ const requireAdmin = async (req, res, next) => {
       .single();
 
     if (error || !adminUser) {
+      console.log(`[requireAdmin] FAILED. Error: ${error?.message || 'adminUser is null'}`);
       return res
         .status(403)
         .json({ error: "Access denied. Admin account not found." });

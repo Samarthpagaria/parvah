@@ -5,6 +5,18 @@ const { supabaseAdmin } = require('../config/db');
  * Helper — verify the requesting admin belongs to the orgId
  */
 async function verifyOrgAccess(adminUserId, orgId) {
+    // First check if super admin — they get access to everything
+    const { data: adminUser } = await supabaseAdmin
+        .from('admin_users')
+        .select('is_super_admin')
+        .eq('id', adminUserId)
+        .single();
+
+    if (adminUser?.is_super_admin) {
+        console.log(`[ACCESS] Super admin ${adminUserId} granted access to org ${orgId}`);
+        return true;
+    }
+
     const { data, error } = await supabaseAdmin
         .from('org_admin_members')
         .select('role')
@@ -12,6 +24,8 @@ async function verifyOrgAccess(adminUserId, orgId) {
         .eq('org_id', orgId)
         .eq('is_active', true)
         .single();
+
+    console.log(`[ACCESS] User ${adminUserId} | org ${orgId} | role: ${data?.role ?? 'none'} | error: ${error?.message ?? 'ok'}`);
 
     if (error || !data) return false;
     return true;
@@ -327,7 +341,7 @@ exports.getStaffPerformance = async (req, res) => {
         // Get all staff members in this org
         const { data: staffMembers, error: staffError } = await supabaseAdmin
             .from('org_admin_members')
-            .select('admin_user_id, admin_users(id, full_name, email, avatar_url)')
+            .select('admin_user_id, admin_user:admin_users!admin_user_id(id, full_name, email, avatar_url)')
             .eq('org_id', orgId)
             .eq('role', 'staff')
             .eq('is_active', true);
@@ -368,7 +382,7 @@ exports.getStaffPerformance = async (req, res) => {
         }
 
         const staff = staffMembers.map((member) => {
-            const user = member.admin_users;
+            const user = member.admin_user;
             const perf = perfMap[member.admin_user_id];
             const avgResolutionHours =
                 perf.resolvedCount > 0

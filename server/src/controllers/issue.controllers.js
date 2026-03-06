@@ -70,6 +70,7 @@ exports.getIssues = async (req, res) => {
 
         const offset = (parseInt(page) - 1) * parseInt(limit);
         const adminUser = await isAdminUser(userId);
+        console.log(`[getIssues] userId=${userId} | isAdmin=${!!adminUser} | isSuper=${adminUser?.is_super_admin} | orgId=${org_id}`);
 
         let query = supabaseAdmin
             .from('issues')
@@ -83,26 +84,39 @@ exports.getIssues = async (req, res) => {
             );
 
         if (adminUser) {
-            // Admin: fetch issues from orgs they belong to
-            const { data: memberships } = await supabaseAdmin
-                .from('org_admin_members')
-                .select('org_id')
-                .eq('admin_user_id', userId)
-                .eq('is_active', true);
-
-            const orgIds = (memberships || []).map((m) => m.org_id);
-
-            if (org_id) {
-                // Verify they belong to the requested org
-                if (!orgIds.includes(org_id)) {
-                    return res.status(403).json({ error: 'Access denied to this organization.' });
-                }
-                query = query.eq('org_id', org_id);
+            if (adminUser.is_super_admin) {
+                console.log(`[getIssues:SUPER_ADMIN] Fetching issues for org=${org_id || 'ALL'}`);
+                if (org_id) query = query.eq('org_id', org_id);
             } else {
-                query = query.in('org_id', orgIds);
+                // Admin: fetch issues from orgs they belong to
+                const { data: memberships } = await supabaseAdmin
+                    .from('org_admin_members')
+                    .select('org_id')
+                    .eq('admin_user_id', userId)
+                    .eq('is_active', true);
+
+                const orgIds = (memberships || []).map((m) => m.org_id);
+                console.log(`[getIssues:ADMIN] user=${userId} belongs to orgs=${orgIds.join(',')}`);
+
+                if (org_id) {
+                    // Verify they belong to the requested org
+                    if (!orgIds.includes(org_id)) {
+                        console.warn(`[getIssues:DENIED] user=${userId} tried to access org=${org_id}`);
+                        return res.status(403).json({ error: 'Access denied to this organization.' });
+                    }
+                    query = query.eq('org_id', org_id);
+                } else {
+                    if (orgIds.length > 0) {
+                        query = query.in('org_id', orgIds);
+                    } else {
+                        // Not in any orgs, return empty result
+                        query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+                    }
+                }
             }
         } else {
             // Public user: only their own issues
+            console.log(`[getIssues:PUBLIC] user=${userId}`);
             query = query.eq('reported_by', userId);
         }
 
@@ -119,6 +133,7 @@ exports.getIssues = async (req, res) => {
             .order(sortField, { ascending: order === 'asc' })
             .range(offset, offset + parseInt(limit) - 1);
 
+        console.log(`[getIssues:DB_FETCH] Offset=${offset} limit=${limit} sort=${sortField}`);
         const { data: issues, error, count } = await query;
         if (error) throw error;
 
@@ -146,15 +161,26 @@ exports.getIssues = async (req, res) => {
 exports.createIssue = async (req, res) => {
     try {
         const userId = req.user.id;
+        console.log(`[createIssue:PAYLOAD] user=${userId} title=${req.body.title}`);
 
         // Only public users can submit issues
-        const pubUser = await isPublicUser(userId);
+        const { data: pubUser } = await supabaseAdmin
+            .from('public_users')
+            .select('id, org_id')
+            .eq('id', userId)
+            .single();
+
         if (!pubUser) {
+            console.warn(`[createIssue:DENIED] user=${userId} is not a public user`);
             return res.status(403).json({ error: 'Only public users can submit issues.' });
         }
 
+        const org_id = pubUser.org_id;
+        if (!org_id) {
+            return res.status(400).json({ error: 'Your account is not linked to any organization. Please contact support.' });
+        }
+
         let {
-            org_id,
             category_id,
             title,
             description,
@@ -165,14 +191,6 @@ exports.createIssue = async (req, res) => {
             is_public = true,
         } = req.body;
 
-        if (!org_id) {
-            const { data: orgs } = await supabaseAdmin.from('organizations').select('id').limit(1);
-            if (orgs && orgs.length > 0) {
-                org_id = orgs[0].id;
-            } else {
-                return res.status(400).json({ error: 'org_id is required and no default organization exists.' });
-            }
-        }
         if (!title || title.length < 5)
             return res.status(400).json({ error: 'Title must be at least 5 characters.' });
         if (!description || description.length < 10)
@@ -181,16 +199,19 @@ exports.createIssue = async (req, res) => {
         // Map category string to ID if needed
         let resolvedCategoryId = null;
         if (category_id) {
+            console.log(`[createIssue:RESOLVE_CAT] input=${category_id}`);
             const { data: cat } = await supabaseAdmin.from('issue_categories').select('id').or(`id.eq.${category_id},name.eq.${category_id}`).single();
             if (cat) {
                 resolvedCategoryId = cat.id;
             } else if (category_id.length > 3) {
                 // If it looks like a name, create it
-                const { data: newCat } = await supabaseAdmin.from('issue_categories').insert({ name: category_id }).select().single();
+                console.log(`[createIssue:NEW_CAT] name=${category_id} org=${org_id}`);
+                const { data: newCat } = await supabaseAdmin.from('issue_categories').insert({ name: category_id, org_id }).select().single();
                 if (newCat) resolvedCategoryId = newCat.id;
             }
         }
 
+        console.log(`[createIssue:DB_INSERT] org=${org_id} title=${title} by=${userId}`);
         const { data: issue, error } = await supabaseAdmin
             .from('issues')
             .insert({
@@ -210,6 +231,7 @@ exports.createIssue = async (req, res) => {
             .single();
 
         if (error) throw error;
+        console.log(`[createIssue:SUCCESS] id=${issue.id}`);
 
         // Log activity
         await logActivity({
@@ -218,6 +240,7 @@ exports.createIssue = async (req, res) => {
             actorType: 'public_user',
             action: 'ISSUE_CREATED',
             newValue: { status: 'open', priority },
+            orgId: org_id,
         });
 
         // Notify org admins
@@ -245,8 +268,9 @@ exports.getIssueById = async (req, res) => {
     try {
         const { issueId } = req.params;
         const userId = req.user.id;
+        console.log(`[getIssueById] id=${issueId} user=${userId}`);
 
-        const { data: issue, error } = await supabaseAdmin
+        const { data: issue, error: fetchErr } = await supabaseAdmin
             .from('issues')
             .select(
                 `*, 
@@ -258,7 +282,7 @@ exports.getIssueById = async (req, res) => {
             .eq('id', issueId)
             .single();
 
-        if (error || !issue) {
+        if (fetchErr || !issue) {
             return res.status(404).json({ error: 'Issue not found.' });
         }
 
@@ -267,6 +291,7 @@ exports.getIssueById = async (req, res) => {
         const adminMember = await getAdminOrgMember(userId, issue.org_id);
 
         if (!isReporter && !adminMember) {
+            console.warn(`[getIssueById:DENIED] user=${userId} tried to access issue=${issueId}`);
             return res.status(403).json({ error: 'Access denied.' });
         }
 
@@ -287,6 +312,7 @@ exports.updateIssue = async (req, res) => {
     try {
         const { issueId } = req.params;
         const userId = req.user.id;
+        console.log(`[updateIssue:PAYLOAD] id=${issueId} user=${userId}`);
 
         const { data: issue, error: fetchErr } = await supabaseAdmin
             .from('issues')
@@ -297,11 +323,16 @@ exports.updateIssue = async (req, res) => {
         if (fetchErr || !issue) return res.status(404).json({ error: 'Issue not found.' });
 
         const member = await getAdminOrgMember(userId, issue.org_id);
+        const adminUser = await isAdminUser(userId);
+        const isSuperAdmin = adminUser?.is_super_admin === true;
+
         const isAssignedStaff = issue.assigned_to === userId && member?.role === 'staff';
-        const canEdit = member && ['owner', 'edit'].includes(member.role);
+        const canEdit = isSuperAdmin || (member && ["owner", "staff"].includes(member.role));
+
+        console.log(`[updateIssue:PERMISSION] user=${userId} role=${member?.role} canEdit=${canEdit}`);
 
         if (!canEdit && !isAssignedStaff) {
-            return res.status(403).json({ error: 'Insufficient permissions to update this issue.' });
+            return res.status(403).json({ error: "Insufficient permissions to update this issue." });
         }
 
         const allowedFields = ['title', 'description', 'category_id', 'address', 'latitude', 'longitude', 'is_public'];
@@ -314,6 +345,7 @@ exports.updateIssue = async (req, res) => {
             return res.status(400).json({ error: 'No valid fields provided for update.' });
         }
 
+        console.log(`[updateIssue:DB_UPDATE] id=${issueId} updates=${JSON.stringify(updates)}`);
         const { data: updated, error: updateErr } = await supabaseAdmin
             .from('issues')
             .update(updates)
@@ -349,6 +381,7 @@ exports.updateIssueStatus = async (req, res) => {
         const { issueId } = req.params;
         const { status, resolution_note } = req.body;
         const userId = req.user.id;
+        console.log(`[updateIssueStatus] id=${issueId} status=${status}`);
 
         const VALID_STATUSES = ['open', 'in_progress', 'on_hold', 'resolved', 'closed', 'rejected'];
         if (!status || !VALID_STATUSES.includes(status)) {
@@ -364,16 +397,21 @@ exports.updateIssueStatus = async (req, res) => {
         if (fetchErr || !issue) return res.status(404).json({ error: 'Issue not found.' });
 
         const member = await getAdminOrgMember(userId, issue.org_id);
+        const adminUser = await isAdminUser(userId);
+        const isSuperAdmin = adminUser?.is_super_admin === true;
+
         const isAssignedStaff = issue.assigned_to === userId && member?.role === 'staff';
-        const canEdit = member && ['owner', 'edit'].includes(member.role);
+        const canEdit = isSuperAdmin || (member && ["owner", "staff"].includes(member.role));
 
         if (!canEdit && !isAssignedStaff) {
-            return res.status(403).json({ error: 'Insufficient permissions to change status.' });
+            console.warn(`[updateIssueStatus:DENIED] user=${userId} role=${member?.role}`);
+            return res.status(403).json({ error: "Insufficient permissions to change status." });
         }
 
         const updates = { status };
         if (resolution_note) updates.resolution_note = resolution_note;
 
+        console.log(`[updateIssueStatus:DB_UPDATE] id=${issueId} new_status=${status}`);
         const { data: updated, error: updateErr } = await supabaseAdmin
             .from('issues')
             .update(updates)
@@ -390,6 +428,7 @@ exports.updateIssueStatus = async (req, res) => {
             action: 'STATUS_CHANGED',
             oldValue: { status: issue.status },
             newValue: { status },
+            orgId: issue.org_id,
         });
 
         // Notify reporter of status change
@@ -397,6 +436,7 @@ exports.updateIssueStatus = async (req, res) => {
             recipientId: issue.reported_by,
             recipientType: 'public_user',
             issueId,
+            orgId: issue.org_id,
             type: 'STATUS_UPDATE',
             title: 'Your issue status has been updated',
             message: `Issue status changed to "${status}".`,
@@ -419,6 +459,7 @@ exports.assignIssue = async (req, res) => {
         const { issueId } = req.params;
         const { assigned_to } = req.body;
         const userId = req.user.id;
+        console.log(`[assignIssue] id=${issueId} to=${assigned_to}`);
 
         if (!assigned_to) return res.status(400).json({ error: 'assigned_to is required.' });
 
@@ -440,9 +481,11 @@ exports.assignIssue = async (req, res) => {
             .single();
 
         if (!assigneeMember || assigneeMember.role !== 'staff') {
+            console.warn(`[assignIssue:INVALID_ASSIGNEE] user=${assigned_to} org=${issue.org_id}`);
             return res.status(400).json({ error: 'Assignee must be an active staff member of this organization.' });
         }
 
+        console.log(`[assignIssue:DB_UPDATE] id=${issueId} assigned_to=${assigned_to}`);
         const { data: updated, error: updateErr } = await supabaseAdmin
             .from('issues')
             .update({ assigned_to })
@@ -488,6 +531,7 @@ exports.updateIssuePriority = async (req, res) => {
         const { issueId } = req.params;
         const { priority } = req.body;
         const userId = req.user.id;
+        console.log(`[updateIssuePriority] id=${issueId} priority=${priority}`);
 
         const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
         if (!priority || !VALID_PRIORITIES.includes(priority)) {
@@ -502,6 +546,7 @@ exports.updateIssuePriority = async (req, res) => {
 
         if (fetchErr || !issue) return res.status(404).json({ error: 'Issue not found.' });
 
+        console.log(`[updateIssuePriority:DB_UPDATE] id=${issueId} priority=${priority}`);
         const { data: updated, error: updateErr } = await supabaseAdmin
             .from('issues')
             .update({ priority })
@@ -529,7 +574,7 @@ exports.updateIssuePriority = async (req, res) => {
                 title: 'Critical Priority Issue',
                 message: `Issue #${issueId} has been marked as critical priority.`,
                 recipientType: 'admin_user',
-                minRole: 'edit',
+                minRole: "staff",
             });
         }
 
@@ -549,6 +594,7 @@ exports.deleteIssue = async (req, res) => {
     try {
         const { issueId } = req.params;
         const userId = req.user.id;
+        console.log(`[deleteIssue] id=${issueId} by=${userId}`);
 
         const { data: issue, error: fetchErr } = await supabaseAdmin
             .from('issues')
@@ -561,15 +607,20 @@ exports.deleteIssue = async (req, res) => {
         const adminUser = await isAdminUser(userId);
 
         // Allow super admin or org owner
-        if (!adminUser) return res.status(403).json({ error: 'Access denied.' });
+        if (!adminUser) {
+            console.warn(`[deleteIssue:DENIED] user=${userId} is not admin`);
+            return res.status(403).json({ error: 'Access denied.' });
+        }
 
         if (!adminUser.is_super_admin) {
             const member = await getAdminOrgMember(userId, issue.org_id);
             if (!member || member.role !== 'owner') {
+                console.warn(`[deleteIssue:DENIED] user=${userId} role=${member?.role}`);
                 return res.status(403).json({ error: 'Only org owners or super admins can delete issues.' });
             }
         }
 
+        console.log(`[deleteIssue:DB_UPDATE_SOFT_DELETE] id=${issueId}`);
         // Soft-delete: mark as not public and closed
         const { error: updateErr } = await supabaseAdmin
             .from('issues')
@@ -781,11 +832,124 @@ exports.uploadAttachment = async (req, res) => {
             actorType: isReporter ? 'public_user' : 'admin_user',
             action: 'ATTACHMENT_ADDED',
             newValue: { file_name, file_type },
+            orgId: issue.org_id,
         });
 
         return res.status(201).json({ attachment });
     } catch (err) {
         console.error('uploadAttachment error:', err);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+/**
+ * ─── Issue Comments ──────────────────────────────────────────────────────────
+ */
+
+// POST /api/issues/:issueId/comments — Add a new comment
+exports.addComment = async (req, res) => {
+    try {
+        const { issueId } = req.params;
+        const { content } = req.body;
+        const userId = req.user.id;
+
+        if (!content || content.trim().length < 2) {
+            return res.status(400).json({ error: 'Comment content is required.' });
+        }
+
+        const { data: issue, error: fetchErr } = await supabaseAdmin
+            .from('issues')
+            .select('id, org_id, reported_by, assigned_to')
+            .eq('id', issueId)
+            .single();
+
+        if (fetchErr || !issue) return res.status(404).json({ error: 'Issue not found.' });
+
+        const member = await getAdminOrgMember(userId, issue.org_id);
+        const isReporter = issue.reported_by === userId;
+
+        if (!member && !isReporter) {
+            return res.status(403).json({ error: 'Not authorized to comment on this issue.' });
+        }
+
+        const authorType = member ? 'staff' : 'user';
+
+        const { data: comment, error } = await supabaseAdmin
+            .from('issue_comments')
+            .insert({
+                issue_id: issueId,
+                org_id: issue.org_id,
+                author_id: userId,
+                author_type: authorType,
+                content: content.trim(),
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        await logActivity({
+            issueId,
+            orgId: issue.org_id,
+            actorId: userId,
+            actorType: member ? 'admin_user' : 'public_user',
+            action: 'COMMENT_ADDED',
+            newValue: { preview: content.slice(0, 50) },
+        });
+
+        // Notify reciprocal party
+        const recipientId = member ? issue.reported_by : issue.assigned_to;
+        if (recipientId) {
+            await sendNotification({
+                recipientId,
+                recipientType: member ? 'public_user' : 'admin_user',
+                issueId,
+                orgId: issue.org_id,
+                type: 'NEW_COMMENT',
+                title: 'New Comment',
+                message: `${member ? 'Management' : 'The reporter'} left a new comment.`,
+            });
+        }
+
+        return res.status(201).json({ comment });
+    } catch (err) {
+        console.error('addComment error:', err);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
+
+// GET /api/issues/:issueId/comments — List comments
+exports.getComments = async (req, res) => {
+    try {
+        const { issueId } = req.params;
+        const userId = req.user.id;
+
+        const { data: issue, error: fetchErr } = await supabaseAdmin
+            .from('issues')
+            .select('id, org_id, reported_by')
+            .eq('id', issueId)
+            .single();
+
+        if (fetchErr || !issue) return res.status(404).json({ error: 'Issue not found.' });
+
+        const member = await getAdminOrgMember(userId, issue.org_id);
+        const isReporter = issue.reported_by === userId;
+
+        if (!member && !isReporter) {
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+
+        const { data: comments, error } = await supabaseAdmin
+            .from('issue_comments')
+            .select('*')
+            .eq('issue_id', issueId)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        return res.json({ comments });
+    } catch (err) {
+        console.error('getComments error:', err);
         return res.status(500).json({ error: 'Internal server error.' });
     }
 };

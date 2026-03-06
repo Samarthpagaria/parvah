@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { authAPI } from '@/utils/backend_api_endpoints'
 
 type Tab = 'profile' | 'security' | 'activity'
 
@@ -53,24 +54,68 @@ export default function AdminProfilePage() {
     const [activeTab, setActiveTab] = useState<Tab>('profile')
     const [twoFAEnabled, setTwoFAEnabled] = useState(true)
     const [saveSuccess, setSaveSuccess] = useState(false)
+    const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState({
-        firstName: 'System',
-        lastName: 'Administrator',
-        email: 'admin@parvah.gov',
-        role: 'Super Admin',
-        phone: '+91 98765 43210',
-        department: 'Central IT Operations',
-        location: 'Mumbai, India',
-        bio: 'Platform administrator managing all civic organizations, users, and infrastructure deployments for the Parvah platform.',
+        firstName: '',
+        lastName: '',
+        email: '',
+        role: 'Admin',
+        phone: '',
+        department: '',
+        location: '',
+        bio: '',
     })
 
-    useEffect(() => { setIsMounted(true) }, [])
+    useEffect(() => {
+        setIsMounted(true)
+        const fetchUser = async () => {
+            try {
+                const res = await authAPI.getMe()
+                const u = res.user
+                const names = (u.full_name || '').split(' ')
+                setProfile({
+                    firstName: names[0] || '',
+                    lastName: names.slice(1).join(' ') || '',
+                    email: u.email || '',
+                    role: u.is_super_admin ? 'Super Admin' : 'Staff',
+                    phone: u.phone || '', // Assuming these exist or come from profile
+                    department: '',
+                    location: '',
+                    bio: u.bio || '',
+                })
+            } catch (err) {
+                console.error('Failed to fetch user:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchUser()
+    }, [])
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
-        setIsEditing(false)
-        setSaveSuccess(true)
-        setTimeout(() => setSaveSuccess(false), 3000)
+        try {
+            await authAPI.updateProfile({
+                full_name: `${profile.firstName} ${profile.lastName}`,
+                bio: profile.bio,
+            })
+            setIsEditing(false)
+            setSaveSuccess(true)
+            setTimeout(() => setSaveSuccess(false), 3000)
+        } catch (err) {
+            console.error('Failed to update profile:', err)
+        }
+    }
+
+    const handleLogout = async () => {
+        try {
+            await authAPI.logout()
+            window.location.href = '/admin/login'
+        } catch (err) {
+            console.error('Logout failed:', err)
+            // Fallback
+            window.location.href = '/admin/login'
+        }
     }
 
     const tabs: { id: Tab; label: string }[] = [
@@ -118,7 +163,7 @@ export default function AdminProfilePage() {
                             {profile.firstName[0]}{profile.lastName[0]}
                         </div>
                         <button
-                            onClick={() => window.location.href = '/admin/login'}
+                            onClick={handleLogout}
                             className="text-[#94a3b8] hover:text-[#F25A5A] transition-colors font-normal text-[11px] uppercase tracking-widest pl-4 border-l border-gray-200"
                         >
                             Logout
