@@ -248,4 +248,7 @@ export const analyticsAPI = {
   getOverview: (orgId) => apiFetch(`/analytics/overview/${orgId}`),
   getTrends: (orgId) => apiFetch(`/analytics/trends/${orgId}`),
   getByCategory: (orgId) => apiFetch(`/analytics/by-category/${orgId}`),
+  getByStatus: (orgId) => apiFetch(`/analytics/by-status/${orgId}`),
+  getStaffPerformance: (orgId) => apiFetch(`/analytics/staff-performance/${orgId}`),
+  getResolutionTime: (orgId) => apiFetch(`/analytics/resolution-time/${orgId}`),
 };

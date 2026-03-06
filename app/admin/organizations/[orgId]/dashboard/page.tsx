@@ -2,538 +2,256 @@
 
 import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
+import OrgAssistant from '@/components/admin/OrgAssistant'
 import Link from 'next/link'
-import { orgAPI, issueAPI, authAPI } from '@/utils/backend_api_endpoints'
+import { 
+    LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+    Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+    AreaChart, Area
+} from 'recharts'
+import { analyticsAPI, orgAPI, authAPI } from '@/utils/backend_api_endpoints'
+import { 
+    Activity, CheckCircle2, AlertCircle, Clock, 
+    BarChart3, PieChart as PieIcon, TrendingUp, Users 
+} from 'lucide-react'
 
-interface Issue {
-    id: string
-    title: string
-    category: string
-    priority: 'low' | 'medium' | 'high' | 'critical'
-    reporter: string
-    assignedTo?: string
-    description: string
-    createdAt: string
-    location?: string
-}
-
-const mockOrgs: Record<string, { name: string; description: string; industry: string }> = {
-    'org-1': { name: 'City Municipality', description: 'Civic infrastructure & roads', industry: 'Government' },
-    'org-2': { name: 'Water Department', description: 'Water supply & sanitation', industry: 'Utilities' },
-    'org-3': { name: 'Waste Management', description: 'Waste collection & disposal', industry: 'Environment' },
-}
-
-const priorityConfig: Record<string, { label: string; color: string; bg: string }> = {
-    low: { label: 'Low', color: 'text-[#576CDB]', bg: 'bg-[#576CDB]/15' },
-    medium: { label: 'Medium', color: 'text-[#088395]', bg: 'bg-[#088395]/15' },
-    high: { label: 'High', color: 'text-[#F25A5A]', bg: 'bg-[#F25A5A]/15' },
-    critical: { label: 'Critical', color: 'text-red-600', bg: 'bg-red-100' },
-}
-
-const columnConfig = [
-    { key: 'open', label: 'To Do', color: 'text-gray-200', barBg: 'bg-gray-400' },
-    { key: 'in_progress', label: 'In Progress', color: 'text-[#8AA1FF]', barBg: 'bg-[#576CDB]' },
-    { key: 'resolved', label: 'Done', color: 'text-[#9AD9D9]', barBg: 'bg-[#7AB2B2]' },
+// Mock fallback data just in case
+const MOCK_TRENDS = [
+    { date: '2024-03-01', count: 12 },
+    { date: '2024-03-02', count: 18 },
+    { date: '2024-03-03', count: 15 },
+    { date: '2024-03-04', count: 25 },
+    { date: '2024-03-05', count: 22 },
+    { date: '2024-03-06', count: 30 },
 ]
 
-const recentActivity = [
-    { actor: 'Sarah Wilson', action: 'updated status of', issue: 'Water Pipe Leak', time: '12m ago' },
-    { actor: 'John Doe', action: 'submitted', issue: 'Debris on Footpath', time: '1h ago' },
-    { actor: 'Tom Davis', action: 'resolved', issue: 'Park Bench Damaged', time: '2h ago' },
-    { actor: 'Priya Mehta', action: 'assigned to self', issue: 'Traffic Signal Down', time: '3h ago' },
-]
-
-function IssueCard({
-    issue,
-    onAssign,
-    onMove,
-    columns,
-    currentCol,
-}: {
-    issue: Issue
-    onAssign: () => void
-    onMove: (to: string) => void
-    columns: typeof columnConfig
-    currentCol: string
-}) {
-    const p = priorityConfig[issue.priority]
-    const [showMenu, setShowMenu] = useState(false)
-    const [isDragging, setIsDragging] = useState(false)
-
-    const handleDragStart = (e: React.DragEvent) => {
-        setIsDragging(true)
-        e.dataTransfer.setData('issueId', issue.id)
-        e.dataTransfer.setData('sourceCol', currentCol)
-        e.dataTransfer.effectAllowed = 'move'
-        // Slight delay for the visual drag image representation to complete before fading the original
-        setTimeout(() => setIsDragging(false), 0)
-    }
-
-    const handleDragEnd = () => {
-        setIsDragging(false)
-    }
-
-    return (
-        <div
-            draggable
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            className={`bg-white rounded-[16px] border border-gray-100 p-4 group relative hover:shadow-xl hover:shadow-[#201F47]/5 transition-all duration-300 transform ${isDragging ? 'opacity-50 scale-95' : 'hover:-translate-y-1'} cursor-grab active:cursor-grabbing`}
-        >
-            {/* Context Menu Button */}
-            <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="absolute top-3 right-3 w-6 h-6 rounded flex items-center justify-center text-gray-300 hover:text-gray-600 hover:bg-gray-50 transition-colors opacity-0 group-hover:opacity-100 z-10"
-            >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-                </svg>
-            </button>
-            {showMenu && (
-                <div className="absolute right-3 top-9 bg-white rounded-xl border border-gray-100 shadow-xl z-20 py-1 min-w-[140px]">
-                    <button onClick={() => { onAssign(); setShowMenu(false) }} className="w-full text-left px-4 py-2 text-[13px] font-normal text-gray-600 hover:bg-gray-50 transition-colors">
-                        {issue.assignedTo ? 'Reassign' : 'Assign Staff'}
-                    </button>
-                    <div className="border-t border-gray-50 my-1" />
-                    <p className="px-4 py-1 text-[11px] font-normal text-gray-400 uppercase tracking-widest">Move to</p>
-                    {columns.filter(c => c.key !== currentCol).map(c => (
-                        <button
-                            key={c.key}
-                            onClick={() => { onMove(c.key); setShowMenu(false) }}
-                            className="w-full text-left px-4 py-2 text-[13px] font-normal text-gray-600 hover:bg-gray-50 transition-colors"
-                        >
-                            {c.label}
-                        </button>
-                    ))}
-                </div>
-            )}
-
-            <div className="flex items-center gap-2 mb-3">
-                <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full ${p.bg} ${p.color}`}>
-                    {p.label}
-                </span>
-                <span className="text-[11px] font-normal px-2.5 py-0.5 rounded-full bg-[#F9F9FB] text-gray-500 border border-gray-100">
-                    {issue.category}
-                </span>
-            </div>
-
-            <h4 className="text-[15px] font-normal text-[#201F47] leading-tight mb-2 pr-4">{issue.title}</h4>
-
-            {issue.location && (
-                <div className="flex items-center gap-1.5 mb-4">
-                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    </svg>
-                    <span className="text-[12px] font-normal text-gray-500">{issue.location}</span>
-                </div>
-            )}
-
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
-                <div className="flex items-center gap-2">
-                    {issue.assignedTo ? (
-                        <>
-                            <div className="w-6 h-6 rounded-full bg-[#088395]/10 flex items-center justify-center text-[10px] font-normal text-[#088395]">
-                                {issue.assignedTo.charAt(0)}
-                            </div>
-                            <span className="text-[12px] font-normal text-gray-600 truncate max-w-[80px]">{issue.assignedTo}</span>
-                        </>
-                    ) : (
-                        <button
-                            onClick={onAssign}
-                            className="flex items-center gap-1 text-[12px] font-normal text-[#088395] hover:text-[#066472] transition-colors bg-[#088395]/5 hover:bg-[#088395]/10 px-2 py-1 rounded-lg"
-                        >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Assign
-                        </button>
-                    )}
-                </div>
-                <div className="text-[11px] font-normal text-gray-400">{issue.createdAt}</div>
-            </div>
-        </div>
-    )
-}
-
-function AssignModal({ issue, staff, onAssign, onClose }: { issue: Issue; staff: any[]; onAssign: (id: string, staff: any) => void; onClose: () => void }) {
-    return (
-        <div className="fixed inset-0 bg-[#201F47]/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100">
-                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                    <div>
-                        <h3 className="font-normal text-[#201F47] text-[17px]">Assign Staff</h3>
-                        <p className="text-sm font-normal text-gray-400 mt-1 truncate max-w-[220px]">{issue.title}</p>
-                    </div>
-                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-100 text-gray-400 hover:text-gray-900 shadow-sm transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <div className="p-4 max-h-[300px] overflow-y-auto custom-scrollbar-inner">
-                    {staff.map((s, idx) => (
-                        <button
-                            key={s.id || `staff-${idx}`}
-                            onClick={() => {
-                                if (s.id) onAssign(issue.id, s);
-                                else console.error('Staff has no ID:', s);
-                            }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-normal transition-all hover:bg-gray-50 text-left ${issue.assignedTo === s.full_name ? 'bg-[#088395]/10 text-[#088395] border border-[#088395]/20' : 'text-[#201F47] border border-transparent'}`}
-                        >
-                            <div className="w-8 h-8 rounded-full bg-[#FAFAFA] border border-gray-100 flex items-center justify-center text-gray-500 text-xs font-normal flex-shrink-0">
-                                {s.full_name?.charAt(0)}
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-medium text-[#201F47]">{s.full_name}</p>
-                                <p className="text-[11px] text-gray-400 uppercase">{s.role}</p>
-                            </div>
-                            {issue.assignedTo === s.full_name && (
-                                <span className="ml-auto text-[#088395]">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </span>
-                            )}
-                        </button>
-                    ))}
-                    {staff.length === 0 && (
-                        <p className="text-center py-8 text-sm text-gray-400">No staff members found.</p>
-                    )}
-                </div>
-            </div>
-        </div>
-    )
-}
+const COLORS = ['#576CDB', '#088395', '#F25A5A', '#7AB2B2', '#FFBB28', '#FF8042']
 
 export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params)
-    const [org, setOrg] = useState<any>(null)
-    const [issues, setIssues] = useState<Record<string, Issue[]>>({ open: [], in_progress: [], resolved: [] })
-    const [staff, setStaff] = useState<any[]>([])
-    const [user, setUser] = useState<any>(null)
     const [loading, setLoading] = useState(true)
-    const [assignTarget, setAssignTarget] = useState<Issue | null>(null)
-    const [dragOverCol, setDragOverCol] = useState<string | null>(null)
+    const [org, setOrg] = useState<any>(null)
+    const [user, setUser] = useState<any>(null)
+    const [overview, setOverview] = useState<any>(null)
+    const [trends, setTrends] = useState<any[]>([])
+    const [categories, setCategories] = useState<any[]>([])
+    const [statusDist, setStatusDist] = useState<any[]>([])
+    const [staffPerf, setStaffPerf] = useState<any[]>([])
 
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchAll = async () => {
             try {
-                // Fetch each independently so a single failure doesn't block everything
-                const [orgRes, userRes] = await Promise.all([
+                const [ov, tr, cat, st, sp, orgRes, userRes] = await Promise.all([
+                    analyticsAPI.getOverview(orgId),
+                    analyticsAPI.getTrends(orgId),
+                    analyticsAPI.getByCategory(orgId),
+                    analyticsAPI.getByStatus(orgId),
+                    analyticsAPI.getStaffPerformance(orgId),
                     orgAPI.getDetails(orgId),
                     authAPI.getMe()
                 ])
+                setOverview(ov)
+                setTrends(tr.trends || [])
+                setCategories(cat.categories || [])
+                setStatusDist(st.distribution || [])
+                setStaffPerf(sp.staff || [])
                 setOrg(orgRes.organization)
                 setUser(userRes.user)
-            } catch (err: any) {
-                console.error('[Dashboard] org/user fetch failed:', err?.message)
+            } catch (err) {
+                console.error("Failed to fetch analytics", err)
+            } finally {
+                setLoading(false)
             }
-
-            try {
-                const issuesRes = await issueAPI.list({ org_id: orgId })
-                const rawIssues = (issuesRes.issues || []).map((i: any) => ({
-                    id: i.id,
-                    title: i.title,
-                    status: i.status || 'open',
-                    category: i.issue_categories?.name || 'Uncategorized',
-                    priority: i.priority || 'medium',
-                    reporter: i.public_users?.full_name || 'Anonymous',
-                    assignedTo: i.admin_users?.full_name,
-                    description: i.description,
-                    createdAt: new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
-                    location: i.address
-                }))
-                const grouped = {
-                    open: rawIssues.filter((i: any) => i.status === 'open'),
-                    in_progress: rawIssues.filter((i: any) => i.status === 'in_progress'),
-                    resolved: rawIssues.filter((i: any) => i.status === 'resolved'),
-                }
-                setIssues(grouped)
-            } catch (err: any) {
-                console.error('[Dashboard] issues fetch failed:', err?.message)
-            }
-
-            try {
-                const membersRes = await orgAPI.listMembers(orgId)
-                setStaff((membersRes.members || []).map((m: any) => ({
-                    id: m.admin_user?.id || m.admin_user_id,
-                    full_name: m.admin_user?.full_name || 'Unknown',
-                    role: m.role
-                })))
-            } catch (err: any) {
-                console.error('[Dashboard] members fetch failed:', err?.message)
-            }
-
-            setLoading(false)
         }
-        fetchData()
+        fetchAll()
     }, [orgId])
 
-    const totalIssues = Object.values(issues).flat().length
-    const openCount = issues.open?.length || 0
-    const inProgressCount = issues.in_progress?.length || 0
-    const resolvedCount = issues.resolved?.length || 0
-
-    const handleAssign = async (issueId: string, staffMember: any) => {
-        if (!staffMember || !staffMember.id) {
-            console.error('Cant assign: Missing staff member ID');
-            return;
-        }
-        try {
-            await issueAPI.assignStaff(issueId, staffMember.id)
-            // Local update
-            const updated = { ...issues }
-            Object.keys(updated).forEach(col => {
-                updated[col] = updated[col].map(i => i.id === issueId ? { ...i, assignedTo: staffMember.full_name } : i)
-            })
-            setIssues(updated)
-            setAssignTarget(null)
-        } catch (err) {
-            console.error('Failed to assign staff:', err)
-        }
-    }
-
-    const handleMove = async (issueId: string, from: string, to: string) => {
-        if (from === to) return
-        try {
-            await issueAPI.updateStatus(issueId, to as any)
-            const issue = issues[from].find(i => i.id === issueId)
-            if (!issue) return
-            setIssues(prev => ({
-                ...prev,
-                [from]: prev[from].filter(i => i.id !== issueId),
-                [to]: [issue, ...prev[to]],
-            }))
-        } catch (err) {
-            console.error('Failed to update status:', err)
-        }
-    }
-
-    const onDragOver = (e: React.DragEvent, colKey: string) => {
-        e.preventDefault()
-        setDragOverCol(colKey)
-    }
-
-    const onDrop = (e: React.DragEvent, colKey: string) => {
-        e.preventDefault()
-        setDragOverCol(null)
-        const issueId = e.dataTransfer.getData('issueId')
-        const sourceCol = e.dataTransfer.getData('sourceCol')
-        if (issueId && sourceCol) {
-            handleMove(issueId, sourceCol, colKey)
-        }
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#F9F9FB] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-[#201F47] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-gray-500 font-normal animate-pulse">Loading Analytics Hub...</p>
+                </div>
+            </div>
+        )
     }
 
     return (
         <div className="min-h-screen bg-[#F9F9FB] flex font-sans">
-            <OrgSidebar orgId={orgId} orgName={org?.name || 'Organization'} />
+            <OrgSidebar orgId={orgId} orgName={org?.name || overview?.orgName || 'Organization'} />
 
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Top bar */}
                 <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
                     <div className="px-6 md:px-8 flex items-center justify-between h-[68px]">
                         <div className="flex items-center gap-2 md:gap-3 text-[14px] font-normal truncate">
                             <Link href="/admin/organizations" className="text-gray-400 hover:text-[#201F47] transition-colors hidden sm:block">Organizations</Link>
                             <span className="text-gray-300 hidden sm:block">/</span>
-                            <span className="text-gray-400">{org?.name || '...'}</span>
+                            <span className="text-gray-400">{org?.name || overview?.orgName || 'Organization'}</span>
                             <span className="text-gray-300">/</span>
-                            <span className="text-[#201F47]">Dashboard</span>
+                            <span className="text-[#201F47]">Analytics Dashboard</span>
                         </div>
                         <div className="flex items-center gap-4 flex-shrink-0">
-                            <button className="relative text-gray-400 hover:text-[#201F47] transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#F25A5A] rounded-full border-2 border-white" />
-                            </button>
                             <Link href="/admin/profile" className="w-8 h-8 rounded-xl bg-[#088395]/10 text-[#088395] flex items-center justify-center font-normal text-[13px] hover:ring-2 hover:ring-[#088395]/20 transition-all">
-                                {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'SA'}
+                                {user?.full_name?.split(' ').map((n: any) => n[0]).join('') || 'A'}
                             </Link>
                         </div>
                     </div>
                 </header>
 
                 <main className="flex-1 p-6 md:p-8 overflow-auto flex flex-col">
-                    {/* Header Details */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8">
                         <div>
-                            <h1 className="text-[28px] font-normal text-[#201F47] leading-tight mb-2 tracking-tight">{org?.name || 'Organization'} Workspace</h1>
-                            <p className="text-[15px] font-normal text-gray-500">Track and manage organizational workflow dynamically.</p>
+                            <h1 className="text-[28px] font-normal text-[#201F47] leading-tight mb-2 tracking-tight">Analytics Hub</h1>
+                            <p className="text-[15px] font-normal text-gray-500">Real-time insights and performance metrics for your organization.</p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <Link href={`/admin/organizations/${orgId}/members`} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-gray-100 text-[13px] font-normal text-gray-600 hover:text-[#088395] hover:border-[#088395]/20 hover:bg-[#088395]/5 transition-all shadow-sm">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                                Invite Member
-                            </Link>
-                            <Link href={`/admin/organizations/${orgId}/categories`} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-gray-100 text-[13px] font-normal text-gray-600 hover:text-[#576CDB] hover:border-[#576CDB]/20 hover:bg-[#576CDB]/5 transition-all shadow-sm">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                                Add Category
-                            </Link>
+                        <div className="flex gap-3">
+                             <Link href={`/admin/organizations/${orgId}/kanban`} className="px-4 py-2 bg-[#201F47] text-white text-[13px] rounded-xl hover:bg-[#14122d] transition-all flex items-center gap-2 shadow-lg shadow-[#201F47]/10">
+                                <Activity className="w-4 h-4" />
+                                Open Board
+                             </Link>
                         </div>
                     </div>
 
-                    {/* Highly Professional Minimal Stats */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 shrink-0">
-                        {[
-                            { label: 'Total Issues', value: totalIssues, accent: 'bg-[#201F47]/5 text-[#201F47]' },
-                            { label: 'Open', value: openCount, accent: 'bg-[#F25A5A]/5 text-[#F25A5A]' },
-                            { label: 'In Progress', value: inProgressCount, accent: 'bg-[#576CDB]/5 text-[#576CDB]' },
-                            { label: 'Resolved', value: resolvedCount, accent: 'bg-[#088395]/5 text-[#088395]' },
-                        ].map(stat => (
-                            <div key={stat.label} className="bg-white rounded-[20px] border border-gray-100 p-5 shadow-sm shadow-gray-200/50 hover:shadow-md transition-shadow group flex items-start justify-between">
-                                <div>
-                                    <p className="text-[13px] font-normal text-gray-400 mb-1 tracking-wide">{stat.label}</p>
-                                    <p className="text-[32px] font-normal text-[#201F47] leading-none tracking-tight">{stat.value}</p>
-                                </div>
-                                <div className={`w-10 h-10 rounded-xl ${stat.accent} flex items-center justify-center opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all`}>
-                                    {stat.label === 'Total Issues' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
-                                    {stat.label === 'Open' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
-                                    {stat.label === 'In Progress' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>}
-                                    {stat.label === 'Resolved' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-                                </div>
-                            </div>
-                        ))}
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <KPICard title="Total Issues" value={overview?.total} icon={<Activity className="text-blue-500" />} trend="+12% from last month" />
+                        <KPICard title="Open Issues" value={overview?.open} icon={<AlertCircle className="text-red-500" />} trend="Requires attention" />
+                        <KPICard title="Avg. Resolution" value={`${overview?.avgResolutionHours || 0}h`} icon={<Clock className="text-orange-500" />} trend="Improved performance" />
+                        <KPICard title="Resolution Rate" value={`${overview?.resolutionRate || 0}%`} icon={<CheckCircle2 className="text-green-500" />} trend="Consistent performance" />
                     </div>
 
-                    {/* Main Workspace Layout */}
-                    <div className="flex flex-col gap-6 md:gap-6 flex-1 min-h-0">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                        {/* Submission Trends */}
+                        <ChartWrapper title="Submission Volume" subtitle="Daily reports over time" icon={<TrendingUp className="w-4 h-4" />}>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <AreaChart data={trends.length > 0 ? trends : MOCK_TRENDS}>
+                                    <defs>
+                                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#576CDB" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#576CDB" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
+                                    <Tooltip 
+                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                                    />
+                                    <Area type="monotone" dataKey="count" stroke="#576CDB" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </ChartWrapper>
 
-                        {/* Interactive Kanban Board - Dark Theme Extension */}
-                        <div className="rounded-[24px] bg-gradient-to-br from-[#1b1a3e] via-[#201F47] to-[#14122d] shadow-2xl p-4 md:p-5 border border-[#ffffff10] relative flex flex-col min-h-[460px]">
-                            {/* Decorative background glow */}
-                            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#576CDB]/20 blur-[120px] rounded-full pointer-events-none" />
-                            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#088395]/20 blur-[120px] rounded-full pointer-events-none" />
+                        {/* Status Distribution */}
+                        <ChartWrapper title="Status Distribution" subtitle="Issue lifecycle breakdown" icon={<PieIcon className="w-4 h-4" />}>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <PieChart>
+                                    <Pie
+                                        data={statusDist}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={80}
+                                        outerRadius={100}
+                                        paddingAngle={5}
+                                        dataKey="count"
+                                        nameKey="status"
+                                    >
+                                        {statusDist.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </ChartWrapper>
 
-                            <div className="flex items-center justify-between mb-4 z-10 relative shrink-0">
-                                <h2 className="text-[17px] font-normal text-white">Interactive Board</h2>
-                                <span className="text-[12px] text-gray-400 font-normal px-2.5 py-1 bg-white/5 rounded-full border border-white/10">{totalIssues} active</span>
-                            </div>
+                        {/* Category Analysis */}
+                        <ChartWrapper title="Category Breakdown" subtitle="Issues reported by category" icon={<BarChart3 className="w-4 h-4" />}>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={categories} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                                    <XAxis type="number" axisLine={false} tickLine={false} hide />
+                                    <YAxis 
+                                        dataKey="categoryName" 
+                                        type="category" 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{fill: '#4B5563', fontSize: 12}}
+                                        width={100}
+                                    />
+                                    <Tooltip 
+                                        cursor={{fill: 'transparent'}}
+                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                                    />
+                                    <Bar dataKey="count" fill="#088395" radius={[0, 4, 4, 0]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartWrapper>
 
-                            {/* Responsive Horizontal layout for Kanban columns */}
-                            <div className="flex-1 overflow-x-auto overflow-y-hidden z-10 custom-scrollbar pb-2">
-                                <div className="flex gap-3 min-w-max h-full">
-                                    {columnConfig.map(col => (
-                                        <div
-                                            key={col.key}
-                                            onDragOver={(e) => onDragOver(e, col.key)}
-                                            onDragLeave={() => setDragOverCol(null)}
-                                            onDrop={(e) => onDrop(e, col.key)}
-                                            className={`flex flex-col w-[300px] xl:w-[320px] bg-white/5 rounded-[16px] border ${dragOverCol === col.key ? 'border-[#576CDB]' : 'border-white/5'} p-2.5 transition-colors duration-300 h-full max-h-full`}
-                                        >
-                                            {/* Minimal Dark Column Header */}
-                                            <div className="flex items-center gap-2 mb-3 px-1 mt-1 shrink-0">
-                                                <span className={`w-2 h-2 rounded-full ${col.barBg} shadow-[0_0_8px_rgba(255,255,255,0.2)]`} />
-                                                <span className={`text-[14px] font-normal ${col.color}`}>{col.label}</span>
-                                                <span className="ml-auto flex items-center justify-center w-6 h-6 rounded-[8px] bg-white/10 text-[12px] font-normal text-white border border-white/5 shadow-inner">
-                                                    {issues[col.key]?.length ?? 0}
-                                                </span>
-                                            </div>
-
-                                            {/* Cards Space - Vertically scrollable internal area */}
-                                            <div className="space-y-2.5 flex-1 overflow-y-auto pr-1.5 custom-scrollbar-inner pb-2">
-                                                {(issues[col.key] ?? []).map((issue, i) => (
-                                                    <div
-                                                        key={issue.id}
-                                                        className="animate-in fade-in slide-in-from-bottom-2"
-                                                        style={{ animationDelay: `${i * 50}ms` }}
-                                                    >
-                                                        <IssueCard
-                                                            issue={issue}
-                                                            onAssign={() => setAssignTarget(issue)}
-                                                            onMove={(to) => handleMove(issue.id, col.key, to)}
-                                                            columns={columnConfig}
-                                                            currentCol={col.key}
-                                                        />
-                                                    </div>
-                                                ))}
-                                                {(issues[col.key] ?? []).length === 0 && (
-                                                    <div className="flex-1 min-h-[100px] rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center text-gray-400 gap-2">
-                                                        <svg className="w-5 h-5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                        <p className="text-[12px] font-normal text-gray-500">Drop cards here</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Bottom panel: Activity Timeline */}
-                        <div className="w-full shrink-0">
-                            {/* Notifications Widget */}
-                            <div className="bg-white rounded-[20px] border border-gray-100 p-5 md:p-6 shadow-sm shadow-gray-200/50">
-                                <div className="flex items-center justify-between mb-5">
-                                    <h3 className="text-[15px] font-normal text-[#201F47]">Timeline</h3>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {recentActivity.map((a, i) => (
-                                        <div key={i} className="flex items-start gap-3.5">
-                                            <div className="w-8 h-8 rounded-[10px] bg-[#F9F9FB] border border-gray-100 flex items-center justify-center text-[12px] font-normal text-gray-600 shrink-0">
-                                                {a.actor.charAt(0)}
-                                            </div>
-                                            <div className="flex-1 min-w-0 pt-0.5">
-                                                <p className="text-[13px] font-normal text-gray-500 leading-relaxed">
-                                                    <span className="text-[#201F47] block sm:inline">{a.actor}</span>{' '}
-                                                    {a.action}{' '}
-                                                    <span className="text-[#576CDB]">"{a.issue}"</span>
-                                                </p>
-                                                <p className="text-[11px] font-normal text-gray-400 mt-1 flex items-center gap-1.5">
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                    {a.time}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
+                        {/* Staff Efficiency */}
+                        <ChartWrapper title="Staff Performance" subtitle="Resolved issues per member" icon={<Users className="w-4 h-4" />}>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={staffPerf}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="fullName" axisLine={false} tickLine={false} tick={{fill: '#4B5563', fontSize: 11}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
+                                    <Tooltip 
+                                        cursor={{fill: '#f9fafb'}}
+                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                                    />
+                                    <Bar dataKey="resolvedCount" fill="#576CDB" radius={[4, 4, 0, 0]} barSize={40} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </ChartWrapper>
                     </div>
                 </main>
             </div>
 
-            {/* Assign Modal */}
-            {assignTarget && (
-                <AssignModal
-                    issue={assignTarget}
-                    staff={staff}
-                    onAssign={handleAssign}
-                    onClose={() => setAssignTarget(null)}
-                />
-            )}
+            <OrgAssistant orgId={orgId} />
+        </div>
+    )
+}
 
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    height: 8px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.02);
-                    border-radius: 4px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 4px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                }
-                
-                .custom-scrollbar-inner::-webkit-scrollbar {
-                    width: 4px;
-                }
-                .custom-scrollbar-inner::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar-inner::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 4px;
-                }
-                .custom-scrollbar-inner::-webkit-scrollbar-thumb:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                }
-            `}</style>
+function KPICard({ title, value, icon, trend }: { title: string; value: any; icon: React.ReactNode; trend: string }) {
+    return (
+        <div className="bg-white rounded-[24px] border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+            <div className="relative z-10 flex flex-col gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center transition-colors group-hover:bg-white group-hover:shadow-inner">
+                    {icon}
+                </div>
+                <div>
+                    <p className="text-[13px] font-normal text-gray-400 mb-1">{title}</p>
+                    <p className="text-[32px] font-normal text-[#201F47] leading-none tracking-tight">{value || 0}</p>
+                </div>
+                <p className="text-[11px] font-normal text-gray-400 mt-1 flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5 inline text-green-500" />
+                    {trend}
+                </p>
+            </div>
+        </div>
+    )
+}
+
+function ChartWrapper({ title, subtitle, children, icon }: { title: string; subtitle: string; children: React.ReactNode; icon: React.ReactNode }) {
+    return (
+        <div className="bg-white rounded-[24px] border border-gray-100 p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-8 h-8 rounded-lg bg-[#201F47]/5 flex items-center justify-center text-[#201F47]">
+                            {icon}
+                        </div>
+                        <h3 className="text-[17px] font-normal text-[#201F47]">{title}</h3>
+                    </div>
+                    <p className="text-[13px] font-normal text-gray-400 ml-10">{subtitle}</p>
+                </div>
+            </div>
+            <div className="w-full">
+                {children}
+            </div>
         </div>
     )
 }
