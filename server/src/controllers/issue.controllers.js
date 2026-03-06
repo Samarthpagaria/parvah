@@ -255,7 +255,7 @@ exports.createIssue = async (req, res) => {
             issueId: issue.id,
             actorId: userId,
             actorType: 'public_user',
-            action: 'ISSUE_CREATED',
+            action: 'issue_created',
             newValue: { status: 'open' },
             orgId: org_id,
         });
@@ -438,11 +438,12 @@ exports.updateIssueStatus = async (req, res) => {
 
         if (updateErr) throw updateErr;
 
+        const isResolved = status === 'resolved';
         await logActivity({
             issueId,
             actorId: userId,
             actorType: 'admin_user',
-            action: 'STATUS_CHANGED',
+            action: isResolved ? 'issue_resolved' : 'status_updated',
             oldValue: { status: issue.status },
             newValue: { status },
             orgId: issue.org_id,
@@ -516,9 +517,10 @@ exports.assignIssue = async (req, res) => {
             issueId,
             actorId: userId,
             actorType: 'admin_user',
-            action: 'ISSUE_ASSIGNED',
+            action: 'issue_assigned',
             oldValue: { assigned_to: issue.assigned_to },
             newValue: { assigned_to },
+            orgId: issue.org_id,
         });
 
         // Notify the assigned staff member
@@ -724,15 +726,37 @@ exports.getIssueActivity = async (req, res) => {
             return res.status(403).json({ error: 'Access denied.' });
         }
 
-        const { data: activity, error } = await supabaseAdmin
+        const { data: activityList, error: activityError } = await supabaseAdmin
             .from('issue_activity_log')
             .select('id, actor_id, actor_type, action, old_value, new_value, created_at')
             .eq('issue_id', issueId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (activityError) throw activityError;
 
-        return res.json({ activity: activity || [] });
+        // Enrich with actor names
+        const enrichedActivity = await Promise.all((activityList || []).map(async (a) => {
+            let actorName = 'Unknown';
+            if (a.actor_type === 'public_user') {
+                const { data: u } = await supabaseAdmin.from('public_users').select('full_name').eq('id', a.actor_id).single();
+                if (u) actorName = u.full_name;
+            } else if (a.actor_type === 'admin_user') {
+                const { data: u } = await supabaseAdmin.from('admin_users').select('full_name').eq('id', a.actor_id).single();
+                if (u) actorName = u.full_name;
+            }
+
+            // Resolve target assignee for issue_assigned action
+            if (a.action === 'issue_assigned' && a.new_value?.assigned_to) {
+                const { data: staff } = await supabaseAdmin.from('admin_users').select('full_name').eq('id', a.new_value.assigned_to).single();
+                if (staff) {
+                    a.target_name = staff.full_name;
+                }
+            }
+
+            return { ...a, actor_name: actorName };
+        }));
+
+        return res.json({ activity: enrichedActivity });
     } catch (err) {
         console.error('getIssueActivity error:', err);
         return res.status(500).json({ error: 'Internal server error.' });
@@ -869,7 +893,7 @@ exports.uploadAttachment = async (req, res) => {
             issueId,
             actorId: userId,
             actorType: isReporter ? 'public_user' : 'admin_user',
-            action: 'ATTACHMENT_ADDED',
+            action: 'attachment_added',
             newValue: { file_name, file_type },
             orgId: issue.org_id,
         });
@@ -932,7 +956,7 @@ exports.addComment = async (req, res) => {
             orgId: issue.org_id,
             actorId: userId,
             actorType: member ? 'admin_user' : 'public_user',
-            action: 'COMMENT_ADDED',
+            action: 'comment_added',
             newValue: { preview: content.slice(0, 50) },
         });
 
