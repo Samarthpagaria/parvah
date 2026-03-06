@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import NotificationBell from '@/components/common/NotificationBell'
 
 export default function StaffHeader() {
   return (
@@ -18,6 +19,7 @@ export default function StaffHeader() {
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
+            <NotificationBell userId="mock-staff-id" userType="admin_user" />
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground">Sarah Wilson</p>
               <p className="text-xs text-muted-foreground">Public Works Officer</p>

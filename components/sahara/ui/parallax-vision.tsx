@@ -37,16 +37,16 @@ export function ParallaxVision() {
 
   const sections = [
     {
-      title: "Civic Accountability, Built Into Every Step.",
-      content: "Accountability shouldn't require persistence. In most cities, a citizen who files a complaint has no idea what happens next. There is no confirmation, no timeline, and no name to hold responsible. Parvah changes this by creating a complete, auditable record of every action taken on every issue — from the moment it is filed to the moment it is resolved. Every status change, note, and assignment is timestamped and attributed. Municipalities become transparent by default."
+      title: "Accountability, Built Into Every Step.",
+      content: "Accountability shouldn't require persistence. In many organizations, a user who files a report has no idea what happens next. There is no confirmation, no timeline, and no clear path to resolution. Parvah changes this by creating a complete, auditable record of every action taken, from the moment it is filed to the moment it is resolved. Every status change, note, and assignment is timestamped and attributed. Entities become transparent by default."
     },
     {
       title: "From Complaint to Resolution. In Hours, Not Weeks.",
       content: "The gap between a pot hole being reported and a pothole being repaired used to be measured in months. Parvah compresses that timeline by making it impossible to lose an issue in a pile of emails or a missed phone call. The moment a citizen files a report, it enters a structured workflow. Admins triage, assign, and track. Staff receive tasks directly. Citizens are notified at every step. Nothing falls through the cracks."
     },
     {
-      title: "One Platform. Every Municipality. Real Scale.",
-      content: "Parvah is not a single city solution. It is designed to power civic issue management across multiple organizations, departments, and jurisdictions under one unified platform. Water supply, road maintenance, cleanliness, lighting — each department gets its own issue pipeline, its own staff, and its own categories. Administrators have a bird's-eye view of everything. Scale without chaos. Governance without bureaucracy."
+      title: "One Platform. Every Organization. Real Scale.",
+      content: "Parvah is not a limited solution. It is designed to power issue management across multiple organizations, teams, and jurisdictions under one unified platform. Maintenance, logistics, services, support, each entity gets its own issue pipeline, its own staff, and its own categories. Administrators have a bird's-eye view of everything. Scale without chaos. Management without bureaucracy."
     }
   ];
 
@@ -68,10 +68,10 @@ export function ParallaxVision() {
               >
                 {sections.map((section, idx) => (
                   <div key={idx} className="flex flex-col items-start w-full">
-                    <Badge variant="outline" className="mb-4 border-orange-200 text-orange-600 bg-orange-100/30 uppercase tracking-[0.2em] font-bold py-0.5 px-3 text-[9px] rounded-full border-none">
+                    <Badge variant="outline" className="mb-4 border-teal-200 text-[#088395] bg-teal-100/30 uppercase tracking-[0.2em] font-bold py-0.5 px-3 text-[9px] rounded-full border-none">
                       Focus Area 0{idx + 1}
                     </Badge>
-                    <h3 className="text-2xl md:text-4xl font-black text-neutral-900 mb-6 leading-[1.2] tracking-tight whitespace-normal">
+                    <h3 className="text-2xl md:text-4xl font-semibold text-neutral-900 mb-6 leading-[1.2] tracking-tight whitespace-normal">
                       <TranslatedText>{section.title}</TranslatedText>
                     </h3>
                     <p className="text-base md:text-lg text-neutral-600 font-medium leading-relaxed opacity-80 whitespace-normal">

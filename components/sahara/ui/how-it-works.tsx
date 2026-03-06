@@ -16,21 +16,21 @@ export function HowItWorks() {
   const stepRefs = [step1Ref, step2Ref, step3Ref];
 
   return (
-    <section className="py-32 bg-white overflow-hidden relative">
+    <section className="py-20 bg-white overflow-hidden relative">
       {/* Subtle Background Decoration */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none opacity-[0.03] z-0">
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#ea580c 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#088395 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 relative z-10">
-        <div className="text-center mb-24">
-          <div className="inline-block px-4 py-1.5 mb-4 text-[10px] font-bold tracking-widest uppercase text-orange-600 bg-orange-50 rounded-full">
-            <TranslatedText>Journey</TranslatedText>
+        <div className="text-center mb-16">
+          <div className="inline-block px-4 py-1.5 mb-4 text-[10px] font-bold tracking-widest uppercase text-[#088395] bg-teal-50 rounded-full">
+            <TranslatedText>Process</TranslatedText>
           </div>
-          <h2 className="text-4xl font-extrabold text-neutral-900 sm:text-5xl tracking-tight">
+          <h2 className="text-4xl font-semibold text-neutral-900 sm:text-5xl tracking-tight">
             <TranslatedText>How It Works</TranslatedText>
           </h2>
-          <p className="mt-6 text-neutral-500 font-medium max-w-2xl mx-auto text-lg">
+          <p className="mt-4 text-neutral-500 font-medium max-w-2xl mx-auto text-lg">
             <TranslatedText>Three clear steps from complaint filed to issue closed.</TranslatedText>
           </p>
         </div>
@@ -45,8 +45,8 @@ export function HowItWorks() {
               curvature={-50}
               duration={4}
               pathColor="#f3f4f6"
-              gradientStartColor="#ea580c"
-              gradientStopColor="#f97316"
+              gradientStartColor="#088395"
+              gradientStopColor="#0ea5e9"
             />
             <AnimatedBeam
               containerRef={containerRef}
@@ -56,8 +56,8 @@ export function HowItWorks() {
               duration={4}
               delay={2}
               pathColor="#f3f4f6"
-              gradientStartColor="#ea580c"
-              gradientStopColor="#f97316"
+              gradientStartColor="#088395"
+              gradientStopColor="#0ea5e9"
             />
           </div>
 
@@ -67,9 +67,9 @@ export function HowItWorks() {
                 <div className="relative mb-10">
                   <div
                     ref={stepRefs[index]}
-                    className="h-24 w-24 rounded-[32px] bg-white border border-neutral-100 flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:shadow-[0_8px_30px_rgb(234,88,12,0.1)] group-hover:border-orange-100 transition-all duration-500 relative z-20"
+                    className="h-24 w-24 rounded-[32px] bg-white border border-neutral-100 flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:shadow-[0_8px_30px_rgba(8,131,149,0.1)] group-hover:border-teal-100 transition-all duration-500 relative z-20"
                   >
-                    <div className="text-neutral-900 group-hover:text-orange-600 transition-colors duration-500 group-hover:scale-110">
+                    <div className="text-neutral-900 group-hover:text-[#088395] transition-colors duration-500 group-hover:scale-110">
                       {step.icon}
                     </div>
                   </div>
@@ -78,7 +78,7 @@ export function HowItWorks() {
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-bold text-neutral-900 mb-4 tracking-tight group-hover:text-orange-600 transition-colors duration-500">
+                <h3 className="text-2xl font-bold text-neutral-900 mb-4 tracking-tight group-hover:text-[#088395] transition-colors duration-500">
                   <TranslatedText>{step.title}</TranslatedText>
                 </h3>
                 <p className="text-neutral-500 text-base leading-relaxed max-w-[300px] font-medium opacity-80 group-hover:opacity-100 transition-opacity duration-500">
@@ -96,14 +96,14 @@ export function HowItWorks() {
 const steps = [
   {
     number: "01",
-    title: "Citizen Files a Report",
-    description: "Spot a civic problem. Open Parvah, describe the issue, drop a pin on the map, set the category and priority — done in under a minute.",
+    title: "User Files a Report",
+    description: "Spot an issue. Open Parvah, describe it, drop a pin on the map, set the category and priority, done in under a minute.",
     icon: <FilePlus className="h-8 w-8" />,
   },
   {
     number: "02",
-    title: "Admin Triages & Assigns",
-    description: "The municipality reviews the report, validates it, and assigns it to the right department staff member with a single click.",
+    title: "Admin Reviews & Assigns",
+    description: "The organization reviews the report, validates it, and assigns it to the qualified staff member with a single click.",
     icon: <UserCheck className="h-8 w-8" />,
   },
   {

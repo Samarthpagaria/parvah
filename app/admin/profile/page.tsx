@@ -7,9 +7,9 @@ import { authAPI } from '@/utils/backend_api_endpoints'
 type Tab = 'profile' | 'security' | 'activity'
 
 const recentActivity = [
-    { id: 1, action: 'Approved issue #142 — Pothole on Main St.', time: '2 mins ago', type: 'approved' },
-    { id: 2, action: 'Assigned Sarah Wilson to issue #201', time: '34 mins ago', type: 'assign' },
-    { id: 3, action: 'Closed issue #98 — Street light broken', time: '1 hr ago', type: 'closed' },
+    { id: 1, action: 'Approved issue #142, Pothole on Main St.', time: '2 mins ago', type: 'approved' },
+    { id: 2, action: 'Added new organization: City Water Board', time: '45 mins ago', type: 'new_org' },
+    { id: 3, action: 'Closed issue #98, Street light broken', time: '1 hr ago', type: 'closed' },
     { id: 4, action: 'Created organization: Water Department', time: '3 hrs ago', type: 'create' },
     { id: 5, action: 'Invited Raj Kumar as Read Only to City Municipality', time: '1 day ago', type: 'invite' },
     { id: 6, action: 'Updated category: Road Maintenance', time: '2 days ago', type: 'edit' },

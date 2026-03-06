@@ -35,6 +35,8 @@ app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/organizations", require("./src/routes/org.routes"));
 app.use("/api/invitations", require("./src/routes/invitations.routes"));
 app.use("/api/issues", require("./src/routes/issue.routes"));
+app.use("/api/issues", require("./src/routes/comments.routes"));
+app.use("/api/notifications", require("./src/routes/notifications.routes"));
 app.use('/api/analytics', require('./src/routes/analytics.routes'))
 
 // ── 404 Handler ────────────────────────────────────────────
