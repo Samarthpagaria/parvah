@@ -953,7 +953,7 @@ exports.getComments = async (req, res) => {
         return res.status(500).json({ error: 'Internal server error.' });
     }
 };
-// GET /api/issues/:issueId/activity — List activity log
+// GET /api/issues/:issueId/activity ï¿½ List activity log
 exports.getIssueActivity = async (req, res) => {
     try {
         const { issueId } = req.params;
@@ -975,7 +975,7 @@ exports.getIssueActivity = async (req, res) => {
         }
 
         const { data: activity, error } = await supabaseAdmin
-            .from('issue_activity')
+            .from('issue_activity_log')
             .select('*')
             .eq('issue_id', issueId)
             .order('created_at', { ascending: false });
