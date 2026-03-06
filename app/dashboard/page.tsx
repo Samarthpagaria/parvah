@@ -33,19 +33,8 @@ const priorityConfig: Record<IssuePriority, { label: string; color: string; text
     critical: { label: 'Critical', color: 'bg-red-100', text: 'text-red-600' },
 }
 
-const mockIssues: Issue[] = [
-    { id: 'ISS-001', title: 'Large pothole outside my building', category: 'Road Maintenance', priority: 'high', status: 'in_progress', location: '12B, MG Road, Koramangala', submittedAt: 'Mar 01, 2024', lastUpdate: '2 hours ago', description: 'There is a large pothole right outside the main entrance of my building.' },
-    { id: 'ISS-002', title: 'Street light not working for 2 weeks', category: 'Street Lighting', priority: 'medium', status: 'open', location: 'Park Avenue, Indiranagar', submittedAt: 'Mar 03, 2024', lastUpdate: '1 day ago', description: 'The street light near the park has not been working for over two weeks.' },
-    { id: 'ISS-003', title: 'Overflowing garbage bin at bus stop', category: 'Cleanliness', priority: 'medium', status: 'review', location: 'Bus Stop 42, BTM Layout', submittedAt: 'Feb 28, 2024', lastUpdate: '3 hours ago', description: 'The garbage bin at the bus stop has been overflowing for 3 days.' },
-    { id: 'ISS-004', title: 'Water supply disruption since morning', category: 'Water Supply', priority: 'critical', status: 'resolved', location: 'Sector 4, HSR Layout', submittedAt: 'Feb 25, 2024', lastUpdate: '5 days ago', description: 'Water supply in our area has been disrupted since 6 AM.' },
-]
 
-const recentActivity = [
-    { issueId: 'ISS-001', action: 'Status updated to In Progress', actor: 'City Municipality Staff', time: '2 hours ago', type: 'status' },
-    { issueId: 'ISS-003', action: 'Issue is now Under Review', actor: 'System', time: '3 hours ago', type: 'status' },
-    { issueId: 'ISS-002', action: 'Your issue was received', actor: 'Parvah', time: '1 day ago', type: 'created' },
-    { issueId: 'ISS-004', action: 'Issue marked as Resolved', actor: 'Water Department Staff', time: '5 days ago', type: 'resolve' },
-]
+const recentActivity: any[] = []
 
 const activityTypeConfig = {
     resolve: { bg: 'bg-[#088395]/10', icon: 'text-[#088395]' },

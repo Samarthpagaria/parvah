@@ -5,22 +5,11 @@ import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
 import { orgAPI, authAPI } from '@/utils/backend_api_endpoints'
 
-const mockOrgs: Record<string, string> = {
-    'org-1': 'City Municipality',
-    'org-2': 'Water Department',
-    'org-3': 'Waste Management',
-}
+
 
 interface Category { id: string; name: string; color: string; issueCount: number; description: string }
 
-const initialCategories: Category[] = [
-    { id: '1', name: 'Road Maintenance', color: '#F25A5A', issueCount: 24, description: 'Potholes, road damage, signage issues' },
-    { id: '2', name: 'Street Lighting', color: '#576CDB', issueCount: 11, description: 'Broken or missing street lights' },
-    { id: '3', name: 'Water Supply', color: '#088395', issueCount: 8, description: 'Leaks, disruptions, water quality' },
-    { id: '4', name: 'Cleanliness', color: '#7AB2B2', issueCount: 19, description: 'Illegal dumping, garbage collection' },
-    { id: '5', name: 'Parks & Recreation', color: '#8b5cf6', issueCount: 5, description: 'Park maintenance and amenities' },
-    { id: '6', name: 'Safety', color: '#201F47', issueCount: 7, description: 'Public safety hazards and concerns' },
-]
+
 
 const colorOptions = ['#F25A5A', '#576CDB', '#088395', '#7AB2B2', '#201F47', '#8b5cf6', '#f59e0b', '#ec4899']
 

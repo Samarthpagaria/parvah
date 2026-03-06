@@ -16,14 +16,7 @@ import {
 } from 'lucide-react'
 
 // Mock fallback data just in case
-const MOCK_TRENDS = [
-    { date: '2024-03-01', count: 12 },
-    { date: '2024-03-02', count: 18 },
-    { date: '2024-03-03', count: 15 },
-    { date: '2024-03-04', count: 25 },
-    { date: '2024-03-05', count: 22 },
-    { date: '2024-03-06', count: 30 },
-]
+
 
 const COLORS = ['#576CDB', '#088395', '#F25A5A', '#7AB2B2', '#FFBB28', '#FF8042']
 
@@ -125,7 +118,7 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
                         {/* Submission Trends */}
                         <ChartWrapper title="Submission Volume" subtitle="Daily reports over time" icon={<TrendingUp className="w-4 h-4" />}>
                             <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={trends.length > 0 ? trends : MOCK_TRENDS}>
+                                <AreaChart data={trends}>
                                     <defs>
                                         <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#576CDB" stopOpacity={0.3}/>

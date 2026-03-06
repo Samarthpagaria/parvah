@@ -6,11 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { orgAPI, authAPI } from '@/utils/backend_api_endpoints'
 
-const mockOrgs: Record<string, { name: string; slug: string; industry: string; email: string; phone: string; address: string; description: string }> = {
-    'org-1': { name: 'City Municipality', slug: 'city-municipality', industry: 'Government', email: 'admin@city.gov', phone: '+91 98765 43210', address: 'City Hall, Main Street, Downtown', description: 'Urban infrastructure and civic governance.' },
-    'org-2': { name: 'Water Department', slug: 'water-department', industry: 'Utilities', email: 'water@city.gov', phone: '+91 87654 32109', address: 'Water Authority Building, Sector 4', description: 'Water supply, distribution and sanitation.' },
-    'org-3': { name: 'Waste Management', slug: 'waste-management', industry: 'Environment', email: 'waste@city.gov', phone: '+91 76543 21098', address: 'BBMP Waste Facility, Ring Road', description: 'Waste collection, processing and disposal.' },
-}
+
 
 export default function SettingsPage({ params }: { params: Promise<{ orgId: string }> }) {
     const { orgId } = use(params)

@@ -4,50 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { orgAPI, authAPI } from '@/utils/backend_api_endpoints'
 
-const mockOrgs = [
-  {
-    id: 'org-1',
-    name: 'City Municipality',
-    slug: 'city-municipality',
-    description: 'Premier administration for urban infrastructure, development, and civic monitoring services.',
-    industry: 'Government',
-    iconColor: 'text-[#088395]',
-    iconBg: 'bg-[#088395]/10',
-    iconName: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-    stats: {
-      issues: 34,
-      members: 12
-    }
-  },
-  {
-    id: 'org-2',
-    name: 'Water Department',
-    slug: 'water-department',
-    description: 'Core management of water resources, distribution networks, and sanitation facilities.',
-    industry: 'Utilities',
-    iconColor: 'text-[#576CDB]',
-    iconBg: 'bg-[#576CDB]/10',
-    iconName: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z',
-    stats: {
-      issues: 18,
-      members: 8
-    }
-  },
-  {
-    id: 'org-3',
-    name: 'Waste Management',
-    slug: 'waste-management',
-    description: 'Next-gen environmental cleanup, recycling operations, and waste-to-energy monitoring.',
-    industry: 'Environment',
-    iconColor: 'text-[#7AB2B2]',
-    iconBg: 'bg-[#7AB2B2]/10',
-    iconName: 'M4 4h16v2H4V4zm2 4h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2V8zm5 3v8h2v-8h-2z',
-    stats: {
-      issues: 9,
-      members: 6
-    }
-  },
-]
+
 
 export default function OrganizationsPage() {
   const [orgs, setOrgs] = useState<any[]>([])
@@ -182,13 +139,13 @@ export default function OrganizationsPage() {
             <h1 className="text-3xl font-normal tracking-tight text-[#201F47] mb-2">Organizations</h1>
             <p className="text-base font-normal text-[#94a3b8]">Manage and oversee all registered infrastructure nodes.</p>
           </div>
-          <Link
-            href="/admin/organizations/new"
-            className="bg-[#F25A5A] hover:bg-[#e04f4f] text-white px-6 py-2.5 rounded-2xl font-normal text-sm transition-all flex items-center gap-2 shadow-sm shadow-[#F25A5A]/20"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" /></svg>
-            New Organization
-          </Link>
+            <Link
+              href="/admin/organizations/new"
+              className="bg-[#F25A5A] hover:bg-[#e04f4f] text-white px-6 py-2.5 rounded-2xl font-normal text-sm transition-all flex items-center gap-2 shadow-sm shadow-[#F25A5A]/20"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" /></svg>
+              New Organization
+            </Link>
         </div>
 
         {/* Filter & Search */}
@@ -282,19 +239,21 @@ export default function OrganizationsPage() {
           ))}
 
           {/* Add New Node Card */}
-          <Link
-            href="/admin/organizations/new"
-            className={`bg-white rounded-[24px] border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center min-h-[300px] hover:border-[#F25A5A]/30 hover:bg-[#F25A5A]/5 transition-all duration-300 group ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-            style={{ transitionDelay: `${150 + filtered.length * 50}ms` }}
-          >
-            <div className="w-12 h-12 rounded-xl bg-[#F9F9FB] border border-gray-100 flex items-center justify-center text-[#94a3b8] group-hover:bg-[#F25A5A]/10 group-hover:text-[#F25A5A] group-hover:scale-110 transition-all duration-300 mb-4">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-            <h3 className="text-base font-normal text-[#201F47]">Add New Node</h3>
-            <p className="text-sm font-normal text-[#94a3b8] mt-1">Create organization</p>
-          </Link>
+          {user?.is_super_admin && (
+            <Link
+              href="/admin/organizations/new"
+              className={`bg-white rounded-[24px] border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center min-h-[300px] hover:border-[#F25A5A]/30 hover:bg-[#F25A5A]/5 transition-all duration-300 group ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ transitionDelay: `${150 + filtered.length * 50}ms` }}
+            >
+              <div className="w-12 h-12 rounded-xl bg-[#F9F9FB] border border-gray-100 flex items-center justify-center text-[#94a3b8] group-hover:bg-[#F25A5A]/10 group-hover:text-[#F25A5A] group-hover:scale-110 transition-all duration-300 mb-4">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <h3 className="text-base font-normal text-[#201F47]">Add New Node</h3>
+              <p className="text-sm font-normal text-[#94a3b8] mt-1">Create organization</p>
+            </Link>
+          )}
         </div>
       </main>
     </div>

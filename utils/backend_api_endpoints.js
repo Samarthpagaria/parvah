@@ -237,6 +237,12 @@ export const issueAPI = {
     method: 'PUT',
     body: JSON.stringify({ assigned_to: staffId }),
   }),
+
+  // Get activity log
+  getActivity: (issueId) => apiFetch(`/issues/${issueId}/activity`),
+
+  // Get comments
+  getComments: (issueId) => apiFetch(`/issues/${issueId}/comments`),
 };
 
 /**

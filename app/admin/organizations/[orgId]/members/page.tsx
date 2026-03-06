@@ -5,11 +5,7 @@ import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
 import { orgAPI, authAPI, inviteAPI } from '@/utils/backend_api_endpoints'
 
-const mockOrgs: Record<string, string> = {
-    'org-1': 'City Municipality',
-    'org-2': 'Water Department',
-    'org-3': 'Waste Management',
-}
+
 
 type Role = 'owner' | 'edit' | 'read' | 'staff'
 
@@ -23,13 +19,7 @@ interface Member {
     avatar: string
 }
 
-const initialMembers: Member[] = [
-    { id: '1', name: 'Super Admin', email: 'admin@parvah.gov', role: 'owner', joinedAt: 'Jan 2024', status: 'active', avatar: 'SA' },
-    { id: '2', name: 'Sarah Wilson', email: 'sarah@city.gov', role: 'edit', joinedAt: 'Feb 2024', status: 'active', avatar: 'SW' },
-    { id: '3', name: 'Tom Davis', email: 'tom@city.gov', role: 'staff', joinedAt: 'Mar 2024', status: 'active', avatar: 'TD' },
-    { id: '4', name: 'Priya Mehta', email: 'priya@city.gov', role: 'staff', joinedAt: 'Mar 2024', status: 'active', avatar: 'PM' },
-    { id: '5', name: 'Raj Kumar', email: 'raj@city.gov', role: 'read', joinedAt: 'Mar 2024', status: 'invited', avatar: 'RK' },
-]
+
 
 const roleConfig: Record<Role, { label: string; bg: string; text: string; desc: string }> = {
     owner: { label: 'Owner', bg: 'bg-[#F9F9FB]', text: 'text-[#201F47]', desc: 'Full administration access' },

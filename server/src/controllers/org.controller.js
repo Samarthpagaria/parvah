@@ -40,24 +40,40 @@ const getOrgRole = async (userId, orgId) => {
 // Access: Super Admin only
 const listOrganizations = async (req, res) => {
   try {
-    const superAdmin = await isSuperAdmin(req.user.id);
-    if (!superAdmin) {
-      console.warn(`[listOrganizations:DENIED] user=${req.user.id} - Not superadmin`);
-      return res
-        .status(403)
-        .json({ error: "Access denied. Super Admin only." });
-    }
+    const userId = req.user.id;
+    const superAdmin = await isSuperAdmin(userId);
 
-    console.log(`[listOrganizations] user=${req.user.id}`);
-    const { data: orgs, error } = await supabaseAdmin
+    console.log(`[listOrganizations] user=${userId} | superAdmin=${superAdmin}`);
+
+    let query = supabaseAdmin
       .from("organizations")
       .select(`
         *,
-        owner:admin_users(id, full_name, email)
+        owner:admin_users!owner_admin_id(id, full_name, email)
       `)
       .eq("is_active", true)
       .order("created_at", { ascending: false });
 
+    // if not super admin, filter by memberships
+    if (!superAdmin) {
+      const { data: memberships, error: memError } = await supabaseAdmin
+        .from("org_admin_members")
+        .select("org_id")
+        .eq("admin_user_id", userId)
+        .eq("is_active", true);
+
+      if (memError) throw memError;
+
+      const orgIds = (memberships || []).map(m => m.org_id);
+
+      if (orgIds.length === 0) {
+        return res.json({ organizations: [] });
+      }
+
+      query = query.in("id", orgIds);
+    }
+
+    const { data: orgs, error } = await query;
     if (error) throw error;
 
     // Fetch counts for all orgs in parallel for performance

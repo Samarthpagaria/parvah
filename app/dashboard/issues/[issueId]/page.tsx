@@ -18,56 +18,7 @@ const priorityConfig: Record<string, { color: string; bg: string }> = {
     'Low': { color: 'text-[#088395]', bg: 'bg-[#088395]/10' },
 }
 
-const mockIssueData: Record<string, {
-    id: string; title: string; category: string; priority: string
-    status: IssueStatus; location: string; landmark?: string
-    submittedAt: string; description: string; assignedTo?: string
-    activity: { actor: string; action: string; time: string; note?: string; type: string }[]
-}> = {
-    'ISS-001': {
-        id: 'ISS-001', title: 'Large pothole outside my building', category: 'Road Maintenance',
-        priority: 'High', status: 'in-progress', location: '12B, MG Road, Koramangala',
-        landmark: 'Opposite to Apollo Pharmacy', submittedAt: 'March 01, 2024 · 09:45 AM',
-        description: 'There is a large pothole right outside the main entrance of my building on MG Road. It has been causing problems for vehicles and is a safety hazard, especially at night when visibility is low. Multiple residents have already raised concerns locally.',
-        assignedTo: 'Tom Davis',
-        activity: [
-            { actor: 'Tom Davis', action: 'Added a progress note', time: '2 hours ago', note: 'Inspected the site. Damage is significant. Ordered repair materials — asphalt and compactor. Work scheduled for tomorrow morning.', type: 'note' },
-            { actor: 'City Municipality', action: 'Assigned to Tom Davis', time: '5 hours ago', type: 'assign' },
-            { actor: 'City Municipality', action: 'Status updated to In Progress', time: '5 hours ago', type: 'status' },
-            { actor: 'System', action: 'Issue received and logged', time: 'Mar 01, 09:45 AM', type: 'created' },
-        ],
-    },
-    'ISS-002': {
-        id: 'ISS-002', title: 'Street light not working for 2 weeks', category: 'Street Lighting',
-        priority: 'Medium', status: 'open', location: 'Park Avenue, Indiranagar',
-        submittedAt: 'March 03, 2024 · 06:12 PM',
-        description: 'The street light near the park end of Park Avenue has not been working for over two weeks. This makes it very unsafe to walk at night, especially for residents returning from work late.',
-        activity: [
-            { actor: 'System', action: 'Issue received and logged', time: 'Mar 03, 06:12 PM', type: 'created' },
-        ],
-    },
-    'ISS-003': {
-        id: 'ISS-003', title: 'Overflowing garbage bin at bus stop', category: 'Cleanliness',
-        priority: 'Medium', status: 'review', location: 'Bus Stop 42, BTM Layout',
-        submittedAt: 'February 28, 2024 · 11:30 AM',
-        description: 'The garbage bin at the bus stop has been overflowing for 3 consecutive days with no collection. It is causing unhygienic conditions and an unpleasant smell for commuters.',
-        assignedTo: 'Priya Mehta',
-        activity: [
-            { actor: 'Priya Mehta', action: 'Issue is being reviewed', time: '3 hours ago', note: 'Visited the site. Escalating to the Waste Management department for priority collection.', type: 'note' },
-            { actor: 'City Municipality', action: 'Status updated to Under Review', time: '3 hours ago', type: 'status' },
-            { actor: 'City Municipality', action: 'Assigned to Priya Mehta', time: '1 day ago', type: 'assign' },
-            { actor: 'System', action: 'Issue received and logged', time: 'Feb 28, 11:30 AM', type: 'created' },
-        ],
-    },
-}
 
-const defaultIssue = {
-    id: 'NEW', title: 'Your recently submitted issue', category: 'Miscellaneous',
-    priority: 'Medium', status: 'open' as IssueStatus, location: 'To be confirmed',
-    submittedAt: 'Just now',
-    description: 'Your issue has been submitted and is awaiting review by the municipal team.',
-    activity: [{ actor: 'System', action: 'Issue received and logged', time: 'Just now', type: 'created' }],
-}
 
 const activityIconConfig: Record<string, { bg: string; icon: React.ReactNode }> = {
     note: { bg: 'bg-[#576CDB]/10 text-[#576CDB]', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg> },
@@ -76,18 +27,64 @@ const activityIconConfig: Record<string, { bg: string; icon: React.ReactNode }> 
     created: { bg: 'bg-[#088395]/10 text-[#088395]', icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
 }
 
+import { issueAPI, authAPI, analyticsAPI } from '@/utils/backend_api_endpoints'
+
 export default function IssueDetailPage({ params }: { params: Promise<{ issueId: string }> }) {
     const { issueId } = use(params)
-    const issue = mockIssueData[issueId] ?? { ...defaultIssue, id: issueId }
-    const s = statusConfig[issue.status]
-    const pc = priorityConfig[issue.priority] ?? priorityConfig['Medium']
-
+    const [issue, setIssue] = useState<any>(null)
+    const [loading, setLoading] = useState(true)
     const [comment, setComment] = useState('')
-    const [comments, setComments] = useState<{ text: string; time: string }[]>([])
+    const [comments, setComments] = useState<any[]>([])
+    const [activity, setActivity] = useState<any[]>([])
     const [submitting, setSubmitting] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
 
-    useEffect(() => { setIsMounted(true) }, [])
+    useEffect(() => {
+        setIsMounted(true)
+        const fetchIssueData = async () => {
+            try {
+                const [details, act, comms] = await Promise.all([
+                    issueAPI.getDetails(issueId),
+                    issueAPI.getActivity(issueId),
+                    issueAPI.getComments(issueId)
+                ])
+                setIssue(details.issue)
+                setActivity(act.activity || [])
+                setComments(comms.comments || [])
+            } catch (err) {
+                console.error("Failed to fetch issue", err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchIssueData()
+    }, [issueId])
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#F9F9FB] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-[#201F47] border-t-transparent rounded-full animate-spin" />
+                    <p className="text-gray-500 font-normal animate-pulse">Loading Issue Details...</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (!issue) {
+        return (
+            <div className="min-h-screen bg-[#F9F9FB] flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-xl font-normal text-[#201F47] mb-2">Issue Not Found</h2>
+                    <p className="text-gray-500 mb-6">The issue you are looking for doesn't exist or you don't have access.</p>
+                    <Link href="/dashboard" className="text-[#088395] hover:underline">Back to Dashboard</Link>
+                </div>
+            </div>
+        )
+    }
+
+    const s = statusConfig[issue.status as IssueStatus] || statusConfig['open']
+    const pc = priorityConfig[issue.priority] ?? priorityConfig['Medium']
 
     const handleComment = (e: React.FormEvent) => {
         e.preventDefault()
@@ -196,24 +193,24 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                             </div>
                             <div className="p-5 space-y-1">
                                 {/* User comments first */}
-                                {comments.map((c, i) => (
+                                {comments.map((c: any, i: number) => (
                                     <div key={`uc-${i}`} className="flex gap-3.5 p-3 rounded-2xl bg-[#088395]/5 mb-2">
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#088395] to-[#576CDB] flex items-center justify-center text-white text-[12px] font-normal shrink-0">
-                                            JD
+                                            {c.author_type === 'staff' ? 'S' : 'U'}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between mb-1">
-                                                <p className="text-[13px] font-normal text-[#201F47]">You</p>
-                                                <span className="text-[11px] text-gray-400">{c.time}</span>
+                                                <p className="text-[13px] font-normal text-[#201F47]">{c.author_type === 'staff' ? 'Staff' : 'You'}</p>
+                                                <span className="text-[11px] text-gray-400">{new Date(c.created_at).toLocaleString()}</span>
                                             </div>
-                                            <p className="text-[13px] font-normal text-gray-600 leading-relaxed">{c.text}</p>
+                                            <p className="text-[13px] font-normal text-gray-600 leading-relaxed">{c.content}</p>
                                         </div>
                                     </div>
                                 ))}
 
                                 {/* System Activity Events */}
-                                {issue.activity.map((a, i) => {
-                                    const cfg = activityIconConfig[a.type] ?? activityIconConfig['created']
+                                {activity.map((a: any, i: number) => {
+                                    const cfg = activityIconConfig[a.action?.toLowerCase()] ?? activityIconConfig['created']
                                     return (
                                         <div key={i} className="flex gap-3.5 p-3 rounded-2xl hover:bg-gray-50/50 transition-colors">
                                             <div className={`w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0 ${cfg.bg}`}>
@@ -221,13 +218,15 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-0.5">
-                                                    <p className="text-[13px] font-normal text-[#201F47]">{a.actor}</p>
-                                                    <span className="text-[11px] text-gray-400">{a.time}</span>
+                                                    <p className="text-[13px] font-normal text-[#201F47]">{a.actor_type === 'public_user' ? 'You' : 'Staff'}</p>
+                                                    <span className="text-[11px] text-gray-400">{new Date(a.created_at).toLocaleString()}</span>
                                                 </div>
-                                                <p className="text-[13px] font-normal text-gray-500">{a.action}</p>
-                                                {a.note && (
+                                                <p className="text-[13px] font-normal text-gray-500">{a.action?.replace(/_/g, ' ')}</p>
+                                                {a.new_value && (
                                                     <div className="mt-2.5 bg-gray-50/80 rounded-2xl border border-gray-100 px-4 py-3">
-                                                        <p className="text-[13px] font-normal text-gray-600 leading-relaxed">{a.note}</p>
+                                                        <p className="text-[13px] font-normal text-gray-600 leading-relaxed">
+                                                            {typeof a.new_value === 'object' ? JSON.stringify(a.new_value) : a.new_value}
+                                                        </p>
                                                     </div>
                                                 )}
                                             </div>
@@ -284,8 +283,8 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                                         <div key={status} className="flex gap-3.5">
                                             <div className="flex flex-col items-center">
                                                 <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 border-2 transition-all ${isDone ? 'bg-[#088395] border-[#088395]' :
-                                                        isCurrent ? `${sc.bg} ${sc.border}` :
-                                                            'bg-white border-gray-200'
+                                                    isCurrent ? `${sc.bg} ${sc.border}` :
+                                                        'bg-white border-gray-200'
                                                     }`}>
                                                     {isDone ? (
                                                         <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
@@ -299,8 +298,8 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                                             </div>
                                             <div className="pb-5">
                                                 <p className={`text-[13px] font-normal ${isCurrent ? sc.color :
-                                                        isDone ? 'text-[#088395]' :
-                                                            'text-gray-300'
+                                                    isDone ? 'text-[#088395]' :
+                                                        'text-gray-300'
                                                     }`}>
                                                     {sc.label}
                                                     {isCurrent && <span className="ml-1.5 text-[10px] font-normal opacity-60">← Current</span>}

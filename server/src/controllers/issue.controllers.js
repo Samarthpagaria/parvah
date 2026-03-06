@@ -953,3 +953,38 @@ exports.getComments = async (req, res) => {
         return res.status(500).json({ error: 'Internal server error.' });
     }
 };
+// GET /api/issues/:issueId/activity — List activity log
+exports.getIssueActivity = async (req, res) => {
+    try {
+        const { issueId } = req.params;
+        const userId = req.user.id;
+
+        const { data: issue, error: fetchErr } = await supabaseAdmin
+            .from('issues')
+            .select('id, org_id, reported_by')
+            .eq('id', issueId)
+            .single();
+
+        if (fetchErr || !issue) return res.status(404).json({ error: 'Issue not found.' });
+
+        const member = await getAdminOrgMember(userId, issue.org_id);
+        const isReporter = issue.reported_by === userId;
+
+        if (!member && !isReporter) {
+            return res.status(403).json({ error: 'Access denied.' });
+        }
+
+        const { data: activity, error } = await supabaseAdmin
+            .from('issue_activity')
+            .select('*')
+            .eq('issue_id', issueId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return res.json({ activity });
+    } catch (err) {
+        console.error('getIssueActivity error:', err);
+        return res.status(500).json({ error: 'Internal server error.' });
+    }
+};
