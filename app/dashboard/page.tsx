@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { issueAPI, authAPI } from '@/utils/backend_api_endpoints'
+import AiChatbot from '@/components/AiChatbot'
 
 type IssueStatus = 'open' | 'in_progress' | 'review' | 'resolved'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -333,6 +334,7 @@ export default function UserDashboard() {
                     </div>
                 </div>
             </main>
+            <AiChatbot role="citizen" />
         </div>
     )
 }
