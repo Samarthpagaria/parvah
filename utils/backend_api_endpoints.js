@@ -43,8 +43,26 @@ async function apiFetch(endpoint, options = {}) {
   const data = await response.json().catch(() => ({ error: 'Response parsing failed' }));
 
   if (!response.ok) {
-    // Collect as much detail as possible for diagnosis
     const errorMsg = data.message || data.details || data.error || 'API request failed';
+
+    // 🚩 Handle Token Expiration (401 Unauthorized)
+    if (response.status === 401 && (errorMsg.includes('invalid') || errorMsg.includes('expired') || errorMsg.includes('token'))) {
+      console.warn('[apiFetch] Session expired/invalid. Redirecting to login...');
+
+      // Clear local storage
+      if (useType === 'admin') {
+        localStorage.removeItem('parvah_admin_token');
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/admin/login')) {
+          window.location.href = '/admin/login';
+        }
+      } else {
+        localStorage.removeItem('parvah_public_token');
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login';
+        }
+      }
+    }
+
     const error = new Error(errorMsg);
     // @ts-ignore
     error.details = data.details;
