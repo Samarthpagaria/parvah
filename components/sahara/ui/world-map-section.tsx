@@ -12,7 +12,7 @@ export function WorldMapSection() {
         <div className="relative h-[300px] md:h-[400px] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,black_40%,transparent_90%)]">
           <div className="absolute top-0 left-0 w-full">
             <WorldMap
-              lineColor="#ea580c"
+              lineColor="#088395"
               dots={[
                 {
                   start: { lat: 28.6139, lng: 77.209, label: "New Delhi" },
@@ -45,24 +45,24 @@ export function WorldMapSection() {
 
         {/* Minimalist Small Footer */}
         <div className="pt-6 pb-2 border-t border-neutral-200/50 flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
-          <div className="order-2 md:order-1">
-             <span className="text-lg font-black text-neutral-900 tracking-tighter uppercase italic font-serif">Parvah</span>
+          <div className="order-2 md:order-1 flex items-center gap-0.5 select-none grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+             <span className="text-[15px] font-normal tracking-[-0.04em] text-[#201F47]">par</span><span className="text-[15px] font-normal tracking-[-0.04em] text-[#088395]">vah</span><span className="w-1 h-1 rounded-full bg-[#088395] mb-0.5 ml-0.5 self-end shrink-0" />
           </div>
 
           <div className="flex items-center gap-5 order-1 md:order-2 opacity-60 hover:opacity-100 transition-opacity">
-            <Link href="#" className="text-neutral-500 hover:text-orange-600 transition-colors">
+            <Link href="#" className="text-neutral-500 hover:text-[#088395] transition-colors">
               <Twitter className="w-3.5 h-3.5" />
             </Link>
-            <Link href="#" className="text-neutral-500 hover:text-orange-600 transition-colors">
+            <Link href="#" className="text-neutral-500 hover:text-[#088395] transition-colors">
               <Linkedin className="w-3.5 h-3.5" />
             </Link>
-            <Link href="#" className="text-neutral-500 hover:text-orange-600 transition-colors">
+            <Link href="#" className="text-neutral-500 hover:text-[#088395] transition-colors">
               <Github className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="text-[9px] font-bold text-neutral-400 uppercase tracking-[0.2em] order-3">
-             &copy; 2025 Parvah. Civic Issue Tracking & Resolution.
+             &copy; 2025 Parvah. Issue Tracking & Management.
           </div>
         </div>
       </div>

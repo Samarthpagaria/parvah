@@ -55,7 +55,7 @@ export default function OrganizationsPage() {
   const [showNotifs, setShowNotifs] = useState(false)
 
   const notifications = [
-    { id: 1, title: 'New issue reported', desc: 'Pothole on Ring Road — City Municipality', time: '2m ago', unread: true, color: 'bg-[#F25A5A]' },
+    { id: 1, title: 'New issue reported', desc: 'Pothole on Ring Road, City Municipality', time: '2m ago', unread: true, color: 'bg-[#F25A5A]' },
     { id: 2, title: 'Issue resolved', desc: 'Gutter Cleaning marked done by Tom Davis', time: '1h ago', unread: true, color: 'bg-emerald-500' },
     { id: 3, title: 'Member invited', desc: 'Priya Mehta joined Waste Management', time: '3h ago', unread: false, color: 'bg-[#576CDB]' },
     { id: 4, title: 'Status updated', desc: 'Water Pipe Leak moved to In Review', time: 'Yesterday', unread: false, color: 'bg-[#088395]' },

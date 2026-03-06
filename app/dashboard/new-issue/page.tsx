@@ -24,7 +24,7 @@ const priorities = [
 ]
 
 // -------------------------------------------------------------------
-// MapLocation component — Leaflet loaded via CDN, no npm install
+// MapLocation component, Leaflet loaded via CDN, no npm install
 // -------------------------------------------------------------------
 function MapLocationPicker({
     latitude,
@@ -432,7 +432,7 @@ export default function NewIssuePage() {
                                     </label>
                                     <textarea name="description" value={form.description} onChange={handleChange}
                                         required rows={4}
-                                        placeholder="Describe the issue in detail — what you see, how long it's been there, any safety concerns..."
+                                        placeholder="Describe the issue in detail, what you see, how long it's been there, any safety concerns..."
                                         className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all resize-none" />
                                 </div>
 

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import NotificationBell from '@/components/common/NotificationBell'
 
 export default function UserHeader() {
   return (
@@ -18,6 +19,7 @@ export default function UserHeader() {
 
           {/* Right Section */}
           <div className="flex items-center gap-4">
+            <NotificationBell userId="mock-citizen-id" userType="public_user" />
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-foreground">John Citizen</p>
               <p className="text-xs text-muted-foreground">Resident</p>

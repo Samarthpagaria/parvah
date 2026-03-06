@@ -36,10 +36,10 @@ export function FeaturesSectionWithCardGradient() {
                     {feature.icon}
                   </div>
                 </div>
-                <p className="text-md font-bold text-neutral-900 leading-tight">
+                <p className="text-md font-semibold text-neutral-900 leading-tight">
                   <TranslatedText>{feature.title}</TranslatedText>
                 </p>
-                <p className="text-xs font-semibold text-orange-600 mt-1">
+                <p className="text-xs font-semibold text-[#088395] mt-1">
                   <TranslatedText>{feature.subtitle}</TranslatedText>
                 </p>
                 <p className="text-neutral-600 mt-2 text-[11px] font-normal leading-relaxed">
@@ -58,25 +58,25 @@ const features = [
   {
     title: "Issue Reporting",
     subtitle: "File a complaint in seconds.",
-    description: "Citizens can report civic issues — potholes, broken streetlights, garbage overflow, water supply failures — with a location, description, category, and priority level. No bureaucracy.",
+    description: "Submit issues including maintenance, supply failures, service disruptions, with a location, description, category, and priority level. No friction.",
     icon: <FileText className="h-6 w-6" />,
   },
   {
     title: "Live Location Tracking",
     subtitle: "Know exactly where the problem is.",
-    description: "Each issue is pinned to a precise location. Municipal staff can navigate directly to the site. Admins see a full geographic view of all active civic complaints across their jurisdiction.",
+    description: "Each issue is pinned to a precise location. Assigned staff can navigate directly to the site. Admins see a full geographic view of all active reports across their organization.",
     icon: <MapPin className="h-6 w-6" />,
   },
   {
     title: "Admin Dashboard",
     subtitle: "Full control. Zero chaos.",
-    description: "Administrators manage multiple organizations, triage incoming issues, invite staff members with role-based access, and track issue resolution rates — all from one clean interface.",
+    description: "Administrators manage multiple organizations, triage incoming issues, invite staff members with role-based access, and track issue resolution rates, all from one clean interface.",
     icon: <LayoutDashboard className="h-6 w-6" />,
   },
   {
     title: "Real-Time Status Updates",
     subtitle: "Citizens are never left in the dark.",
-    description: "Every status change — from Open to In Progress to Resolved — is instantly visible to the citizen who filed the report. Transparency built into every step of the resolution process.",
+    description: "Every status change (from Open to In Progress to Resolved) is instantly visible to the user who filed the report. Real-time accountability for everyone.",
     icon: <Bell className="h-6 w-6" />,
   },
   {
@@ -94,13 +94,13 @@ const features = [
   {
     title: "Activity Logs",
     subtitle: "Full audit trail. Full accountability.",
-    description: "Every action on an issue — assignment, status change, note, resolution — is logged with a timestamp and actor. Municipal accountability has never been this clear.",
+    description: "Every action on an issue including assignment, status change, note, resolution is logged with a timestamp and actor. Organizational accountability has never been this clear.",
     icon: <ClipboardList className="h-6 w-6" />,
   },
   {
     title: "Multi-Organization Support",
-    subtitle: "One platform, many municipalities.",
-    description: "Parvah supports multiple civic organizations under a single admin. Whether it's Water Supply, Road Maintenance, or Cleanliness — each department operates independently with its own pipeline.",
+    subtitle: "One platform, many entities.",
+    description: "Parvah supports multiple organizations under a single admin. Whether it's maintenance, logistics, or services, each department operates independently.",
     icon: <Globe className="h-6 w-6" />,
   },
 ];

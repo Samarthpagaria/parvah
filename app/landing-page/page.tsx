@@ -17,26 +17,25 @@ export default function Home() {
       <main className="min-h-screen bg-white sahara-landing-root">
       <HeroSection
         badge={{
-          text: "Citizen-First · Transparent · Real-Time",
+          text: "Connect · Manage · Resolve",
           action: {
             text: "See how it works",
             href: "#how-it-works",
           },
         }}
-        hindiTagline="अपनी समस्या दर्ज करें, समाधान पाएं — अभी"
+        hindiTagline="समस्या को रिपोर्ट करें, समाधान पाएं , सरलता से"
         title={
           <>
-            <TranslatedText>Your City.</TranslatedText> <span className="text-orange-600 italic font-serif drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"><TranslatedText>Your Voice.</TranslatedText></span> <TranslatedText>Real</TranslatedText> <span className="text-orange-600 italic font-serif drop-shadow-[0_0_10px_rgba(234,88,12,0.3)]"><TranslatedText>Resolution.</TranslatedText></span>
+            <TranslatedText>Track.</TranslatedText> <span className="text-[#088395] italic font-serif drop-shadow-[0_0_10px_rgba(8,131,149,0.2)]"><TranslatedText>Manage.</TranslatedText></span> <TranslatedText>Real</TranslatedText> <span className="text-[#088395] italic font-serif drop-shadow-[0_0_10px_rgba(8,131,149,0.2)]"><TranslatedText>Resolution.</TranslatedText></span>
           </>
         }
         description={
           <>
-            <TranslatedText>Parvah bridges citizens and municipal bodies through</TranslatedText>{" "}
-            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]">transparent</span>,{" "}
-            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]">trackable</span>, <TranslatedText>and</TranslatedText>{" "}
-            <span className="text-orange-600 font-semibold drop-shadow-[0_0_8px_rgba(234,88,12,0.4)]"><TranslatedText>accountable</TranslatedText></span>{" "}
-            <TranslatedText>civic issue resolution.</TranslatedText>
-            <TranslatedText> No more ignored complaints.</TranslatedText>
+            <TranslatedText>Parvah connects people and organizations through</TranslatedText>{" "}
+            <span className="text-[#088395] font-semibold drop-shadow-[0_0_8px_rgba(8,131,149,0.3)]">transparent</span>,{" "}
+            <span className="text-[#088395] font-semibold drop-shadow-[0_0_8px_rgba(8,131,149,0.3)]">trackable</span>, <TranslatedText>and</TranslatedText>{" "}
+            <span className="text-[#088395] font-semibold drop-shadow-[0_0_8px_rgba(8,131,149,0.3)]"><TranslatedText>accountable</TranslatedText></span>{" "}
+            <TranslatedText>issue resolution. No more ignored requests.</TranslatedText>
           </>
         }
         actions={[
