@@ -5,6 +5,8 @@ import { Badge } from "@/components/sahara/ui/badge";
 import { ArrowRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ShiningText } from "@/components/sahara/ui/shining-text";
+import { LightRays } from "@/components/ui/light-rays";
+import { GradientButton } from "@/components/ui/gradient-button";
 import Link from "next/link";
 
 interface HeroAction {
@@ -37,49 +39,71 @@ export function HeroSection({
 }: HeroProps) {
 
   return (
-    <section className="bg-white py-8 sm:py-12 md:py-16 px-4">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 pt-4 sm:gap-12">
-        <div className="flex flex-col items-center gap-3 text-center sm:gap-6">
+    <section className="relative py-12 sm:py-20 bg-white overflow-hidden">
+      {/* Background Grid Decoration */}
+      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none">
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#088395 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+      </div>
+
+      {/* Dynamic Background Rays */}
+      <LightRays 
+        color="rgba(8, 131, 149, 0.12)" 
+        count={8} 
+        blur={40} 
+        speed={16} 
+        className="opacity-50"
+      />
+
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 pt-4 sm:gap-12 relative z-10">
+        <div className="flex flex-col items-center gap-4 text-center sm:gap-8">
           {/* Badge */}
           {badge && (
-            <Badge variant="outline" className="animate-appear gap-2 py-1 px-3.5 rounded-full border-orange-100 bg-orange-50/30">
-              <span className="text-[10px] sm:text-xs text-neutral-500 font-medium">{badge.text}</span>
-              <a href={badge.action.href} className="flex items-center gap-1 font-semibold text-orange-600 text-[10px] sm:text-xs hover:text-orange-700 transition-colors">
-                {badge.action.text}
-                <ArrowRightIcon className="h-3 w-3" />
-              </a>
-            </Badge>
+            <div className="animate-appear">
+              <Badge variant="outline" className="gap-2 py-1.5 px-4 rounded-full border-teal-100 bg-teal-50/30 backdrop-blur-sm">
+                <span className="text-[10px] sm:text-xs text-neutral-500 font-semibold tracking-wide">{badge.text}</span>
+                <a href={badge.action.href} className="flex items-center gap-1 font-bold text-[#088395] text-[10px] sm:text-xs hover:text-[#066472] transition-colors">
+                  {badge.action.text}
+                  <ArrowRightIcon className="h-3 w-3" />
+                </a>
+              </Badge>
+            </div>
           )}
 
           {/* Hindi Tagline with Shine */}
           {hindiTagline && (
-            <div className="animate-appear -mb-4 delay-100">
+            <div className="animate-appear -mb-3 delay-100">
               <ShiningText 
                 text={hindiTagline} 
-                className="text-sm md:text-base font-medium" 
+                className="text-xs md:text-sm font-normal" 
               />
             </div>
           )}
 
           {/* Title */}
-          <h1 className="relative z-10 inline-block animate-appear text-neutral-900 text-2xl font-bold leading-tight sm:text-3xl md:text-4xl lg:text-5xl xl:max-w-3xl tracking-tight">
+          <h1 className="relative z-10 inline-block animate-appear text-neutral-900 text-xl font-semibold leading-tight sm:text-2xl md:text-3xl lg:text-4xl xl:max-w-3xl tracking-tight font-sans">
             {title}
           </h1>
 
           {/* Description */}
-          <div className="text-xs relative z-10 max-w-[550px] animate-appear font-medium text-neutral-500 delay-300 sm:text-sm leading-relaxed">
+          <div className="text-[10px] sm:text-xs relative z-10 max-w-[500px] animate-appear font-normal text-neutral-500 delay-300 leading-relaxed">
             {description}
           </div>
 
           {/* Actions */}
           <div className="relative z-10 flex animate-appear justify-center gap-2.5 delay-700">
             {actions.map((action, index) => (
-              <Button key={index} variant={action.variant} size="sm" asChild className="rounded-full px-5 py-4 h-auto text-sm">
-                <Link href={action.href} className="flex items-center gap-2">
-                  {action.icon}
+              <GradientButton 
+                key={index} 
+                variant={action.text.toLowerCase().includes("admin") ? "variant" : "default"} 
+                asChild 
+                className={cn(
+                  "relative rounded-full px-8 py-4 h-auto text-sm overflow-hidden min-w-[160px]"
+                )}
+              >
+                <Link href={action.href} className="flex items-center justify-center w-full h-full">
                   {action.text}
                 </Link>
-              </Button>
+              </GradientButton>
             ))}
           </div>
         </div>
