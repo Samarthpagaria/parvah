@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { issueAPI, authAPI } from '@/utils/backend_api_endpoints'
+import AiChatbot from '@/components/AiChatbot'
 
 type IssueStatus = 'open' | 'in_progress' | 'review' | 'resolved'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -33,6 +34,8 @@ const priorityConfig: Record<IssuePriority, { label: string; color: string; text
     critical: { label: 'Critical', color: 'bg-red-100', text: 'text-red-600' },
 }
 
+
+const recentActivity: any[] = []
 
 const howItWorksSteps = [
     { title: 'Report', desc: 'Pinpoint location and describe the issue.', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
@@ -349,7 +352,6 @@ export default function UserDashboard() {
                     </div>
                 </div>
             </main>
-
             {/* Help Modal */}
             {showHelp && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -385,6 +387,8 @@ export default function UserDashboard() {
                     </div>
                 </div>
             )}
+
+            <AiChatbot role="citizen" />
         </div>
     )
 }
