@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { orgAPI, authAPI } from '@/utils/backend_api_endpoints'
+import { orgAPI, authAPI, invitationAPI } from '@/utils/backend_api_endpoints'
 
 
 
@@ -14,6 +14,7 @@ export default function OrganizationsPage() {
   const [activeFilter, setActiveFilter] = useState('All')
   const [isMounted, setIsMounted] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
+  const [invites, setInvites] = useState<any[]>([])
 
   const notifications = [
     { id: 1, title: 'Session started', desc: 'Logged in as administrator', time: 'Just now', unread: true, color: 'bg-[#F25A5A]' },
@@ -25,12 +26,14 @@ export default function OrganizationsPage() {
     setIsMounted(true)
     const fetchData = async () => {
       try {
-        const [orgsRes, userRes] = await Promise.all([
+        const [orgsRes, userRes, invitesRes] = await Promise.all([
           orgAPI.listAll(),
-          authAPI.getMe()
+          authAPI.getMe(),
+          invitationAPI.getMyInvites()
         ])
         setOrgs(orgsRes.organizations || [])
         setUser(userRes.user)
+        setInvites(invitesRes.invitations || [])
       } catch (err) {
         console.error('Failed to fetch organizations:', err)
       } finally {
@@ -90,14 +93,55 @@ export default function OrganizationsPage() {
                     </div>
 
                     {/* Notification list */}
-                    <div className="divide-y divide-gray-50">
+                    <div className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto">
+                      {/* Invites Section */}
+                      {invites.map(invite => (
+                        <div key={invite.id} className="flex flex-col gap-2 px-5 py-4 bg-[#F25A5A]/5 border-l-4 border-[#F25A5A]">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-[#F25A5A]/10 flex items-center justify-center shrink-0">
+                              <svg className="w-4 h-4 text-[#F25A5A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-medium text-[#201F47]">New Invitation</p>
+                              <p className="text-[12px] text-gray-500 line-clamp-2">You've been invited to join <b>{invite.organization?.name}</b> as <b>{invite.role}</b></p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-1 ml-11">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await invitationAPI.acceptMember(invite.id);
+                                  // Refresh data
+                                  const orgsRes = await orgAPI.listAll();
+                                  setOrgs(orgsRes.organizations || []);
+                                  setInvites(invites.filter(i => i.id !== invite.id));
+                                } catch (err) {
+                                  console.error("Failed to accept invite:", err);
+                                }
+                              }}
+                              className="px-3 py-1 bg-[#F25A5A] text-white text-[11px] rounded-lg hover:bg-[#e04f4f] transition-colors"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              className="px-3 py-1 bg-gray-100 text-gray-600 text-[11px] rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Regular Notifications */}
                       {notifications.map(n => (
                         <div
                           key={n.id}
                           className={`flex items-start gap-3.5 px-5 py-4 hover:bg-gray-50/60 transition-colors cursor-pointer ${n.unread ? 'bg-[#F9F9FB]' : 'bg-white'}`}
                         >
                           <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${n.unread ? n.color : 'bg-gray-200'}`} />
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-Min-w-0">
                             <p className={`text-[13px] font-normal leading-tight mb-0.5 ${n.unread ? 'text-[#201F47]' : 'text-gray-500'}`}>
                               {n.title}
                             </p>
@@ -139,13 +183,13 @@ export default function OrganizationsPage() {
             <h1 className="text-3xl font-normal tracking-tight text-[#201F47] mb-2">Organizations</h1>
             <p className="text-base font-normal text-[#94a3b8]">Manage and oversee all registered infrastructure nodes.</p>
           </div>
-            <Link
-              href="/admin/organizations/new"
-              className="bg-[#F25A5A] hover:bg-[#e04f4f] text-white px-6 py-2.5 rounded-2xl font-normal text-sm transition-all flex items-center gap-2 shadow-sm shadow-[#F25A5A]/20"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" /></svg>
-              New Organization
-            </Link>
+          <Link
+            href="/admin/organizations/new"
+            className="bg-[#F25A5A] hover:bg-[#e04f4f] text-white px-6 py-2.5 rounded-2xl font-normal text-sm transition-all flex items-center gap-2 shadow-sm shadow-[#F25A5A]/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" /></svg>
+            New Organization
+          </Link>
         </div>
 
         {/* Filter & Search */}
@@ -239,21 +283,19 @@ export default function OrganizationsPage() {
           ))}
 
           {/* Add New Node Card */}
-          {user?.is_super_admin && (
-            <Link
-              href="/admin/organizations/new"
-              className={`bg-white rounded-[24px] border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center min-h-[300px] hover:border-[#F25A5A]/30 hover:bg-[#F25A5A]/5 transition-all duration-300 group ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-              style={{ transitionDelay: `${150 + filtered.length * 50}ms` }}
-            >
-              <div className="w-12 h-12 rounded-xl bg-[#F9F9FB] border border-gray-100 flex items-center justify-center text-[#94a3b8] group-hover:bg-[#F25A5A]/10 group-hover:text-[#F25A5A] group-hover:scale-110 transition-all duration-300 mb-4">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <h3 className="text-base font-normal text-[#201F47]">Add New Node</h3>
-              <p className="text-sm font-normal text-[#94a3b8] mt-1">Create organization</p>
-            </Link>
-          )}
+          <Link
+            href="/admin/organizations/new"
+            className={`bg-white rounded-[24px] border border-dashed border-gray-200 p-6 flex flex-col items-center justify-center min-h-[300px] hover:border-[#F25A5A]/30 hover:bg-[#F25A5A]/5 transition-all duration-300 group ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+            style={{ transitionDelay: `${150 + filtered.length * 50}ms` }}
+          >
+            <div className="w-12 h-12 rounded-xl bg-[#F9F9FB] border border-gray-100 flex items-center justify-center text-[#94a3b8] group-hover:bg-[#F25A5A]/10 group-hover:text-[#F25A5A] group-hover:scale-110 transition-all duration-300 mb-4">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <h3 className="text-base font-normal text-[#201F47]">Add New Node</h3>
+            <p className="text-sm font-normal text-[#94a3b8] mt-1">Create organization</p>
+          </Link>
         </div>
       </main>
     </div>

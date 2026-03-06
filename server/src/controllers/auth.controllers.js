@@ -29,22 +29,44 @@ const loginAdmin = async (req, res) => {
       .single();
 
     if (adminError || !adminUser) {
-      console.warn(`[loginAdmin:DENIED] user=${data.user.id} - Not found or inactive`);
-      return res
-        .status(403)
-        .json({ error: "Access denied. Not an admin account." });
+      console.warn(`[loginAdmin:SYNC] user=${data.user.id} - Profile missing, attempting self-healing...`);
+
+      // SELF-HEALING: Create profile if it exists in auth.users but not in admin_users
+      const authUser = data.user;
+      const { data: newProfile, error: syncError } = await supabaseAdmin
+        .from("admin_users")
+        .insert({
+          id: authUser.id,
+          email: authUser.email,
+          full_name: authUser.user_metadata?.full_name || authUser.email.split('@')[0],
+          is_active: true,
+          is_super_admin: false, // Default for non-pre-seeded users
+        })
+        .select()
+        .single();
+
+      if (syncError || !newProfile) {
+        console.error(`[loginAdmin:SYNC_FAILED] user=${data.user.id}:`, syncError?.message);
+        return res.status(403).json({ error: "Access denied. Admin account not found." });
+      }
+
+      console.log(`[loginAdmin:SYNC_SUCCESS] Created profile for user=${authUser.id}`);
+      // Assign the new profile to continue
+      var finalAdminUser = newProfile;
+    } else {
+      var finalAdminUser = adminUser;
     }
 
     // Step 3 — Return JWT + admin profile
-    console.log(`[loginAdmin:SUCCESS] admin=${adminUser.id} email=${adminUser.email}`);
+    console.log(`[loginAdmin:SUCCESS] admin=${finalAdminUser.id} email=${finalAdminUser.email}`);
     res.json({
       token: data.session.access_token,
       user: {
-        id: adminUser.id,
-        email: adminUser.email,
-        full_name: adminUser.full_name,
-        avatar_url: adminUser.avatar_url,
-        is_super_admin: adminUser.is_super_admin,
+        id: finalAdminUser.id,
+        email: finalAdminUser.email,
+        full_name: finalAdminUser.full_name,
+        avatar_url: finalAdminUser.avatar_url,
+        is_super_admin: finalAdminUser.is_super_admin,
       },
     });
   } catch (err) {
@@ -285,10 +307,66 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// Admin Register
+// POST /api/auth/admin/register
+const registerAdmin = async (req, res) => {
+  try {
+    const { email, password, full_name } = req.body;
+
+    if (!email || !password || !full_name) {
+      return res
+        .status(400)
+        .json({ error: "Email, password and full name are required" });
+    }
+
+    // Step 1 — Create auth account in Supabase Auth
+    const { data, error } = await supabaseAdmin.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    // Step 2 — Create profile in admin_users table
+    console.log(`[registerAdmin:DB_INSERT] user=${data.user.id} email=${email}`);
+    const { data: newAdmin, error: insertError } = await supabaseAdmin
+      .from("admin_users")
+      .insert({
+        id: data.user.id,
+        email,
+        full_name,
+        is_active: true,
+        is_super_admin: false, // Default to false for public registration
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("[registerAdmin:DB_INSERT_ERROR]", insertError.message);
+      return res.status(500).json({ error: "Failed to create admin profile" });
+    }
+
+    res.status(201).json({
+      message: "Admin registration successful",
+      user: {
+        id: newAdmin.id,
+        email: newAdmin.email,
+        full_name: newAdmin.full_name,
+      },
+    });
+  } catch (err) {
+    console.error("registerAdmin fatal error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   loginAdmin,
   loginPublicUser,
   registerPublicUser,
+  registerAdmin,
   logout,
   getMe,
   updateProfile,

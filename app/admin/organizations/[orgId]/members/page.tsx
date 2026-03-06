@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import Link from 'next/link'
-import { orgAPI, authAPI, inviteAPI } from '@/utils/backend_api_endpoints'
+import { orgAPI, authAPI, invitationAPI } from '@/utils/backend_api_endpoints'
 
 
 
@@ -78,21 +78,28 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
                 // Try to also load pending invites (optional)
                 let invitedMembers: Member[] = []
                 try {
-                    const invitesRes = await inviteAPI.listPending(orgId)
-                    invitedMembers = (invitesRes.invitations || []).map((i: any) => ({
-                        id: i.id,
-                        name: i.invitee_email.split('@')[0],
-                        email: i.invitee_email,
-                        role: i.role as Role,
-                        joinedAt: new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
-                        status: 'invited',
-                        avatar: i.invitee_email.charAt(0).toUpperCase()
-                    }))
+                    const invitesRes = await invitationAPI.listPending(orgId)
+                    // Only show 'pending' invitations to avoid duplicates with already joined members
+                    invitedMembers = (invitesRes.invitations || [])
+                        .filter((i: any) => i.status === 'pending')
+                        .map((i: any) => ({
+                            id: i.id,
+                            name: i.invitee_email.split('@')[0],
+                            email: i.invitee_email,
+                            role: i.role as Role,
+                            joinedAt: new Date(i.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }),
+                            status: 'invited',
+                            avatar: i.invitee_email.charAt(0).toUpperCase()
+                        }))
                 } catch (err: any) {
                     console.error('[Members] invites fetch failed (non-critical):', err?.message)
                 }
 
-                setMembers([...activeMembers, ...invitedMembers])
+                // Deduplicate: If an email exists in activeMembers, don't show it from invitedMembers
+                const activeEmailSet = new Set(activeMembers.map(m => m.email.toLowerCase()))
+                const uniqueInvited = invitedMembers.filter(i => !activeEmailSet.has(i.email.toLowerCase()))
+
+                setMembers([...activeMembers, ...uniqueInvited])
             } catch (err: any) {
                 console.error('[Members] members fetch failed:', err?.message)
             }
@@ -105,7 +112,7 @@ export default function MembersPage({ params }: { params: Promise<{ orgId: strin
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await inviteAPI.send(orgId, inviteEmail, inviteRole)
+            await invitationAPI.send(orgId, inviteEmail, inviteRole)
             setInviteSent(true)
             // Local update
             const newMember: Member = {

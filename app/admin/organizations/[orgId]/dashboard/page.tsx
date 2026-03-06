@@ -4,15 +4,15 @@ import { useState, useEffect, use } from 'react'
 import OrgSidebar from '@/components/admin/OrgSidebar'
 import OrgAssistant from '@/components/admin/OrgAssistant'
 import Link from 'next/link'
-import { 
-    LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+import {
+    LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
     AreaChart, Area
 } from 'recharts'
 import { analyticsAPI, orgAPI, authAPI } from '@/utils/backend_api_endpoints'
-import { 
-    Activity, CheckCircle2, AlertCircle, Clock, 
-    BarChart3, PieChart as PieIcon, TrendingUp, Users 
+import {
+    Activity, CheckCircle2, AlertCircle, Clock,
+    BarChart3, PieChart as PieIcon, TrendingUp, Users
 } from 'lucide-react'
 
 // Mock fallback data just in case
@@ -30,6 +30,7 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
     const [categories, setCategories] = useState<any[]>([])
     const [statusDist, setStatusDist] = useState<any[]>([])
     const [staffPerf, setStaffPerf] = useState<any[]>([])
+    const [role, setRole] = useState<any>(null)
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -49,6 +50,7 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
                 setStatusDist(st.distribution || [])
                 setStaffPerf(sp.staff || [])
                 setOrg(orgRes.organization)
+                setRole(orgRes.my_role)
                 setUser(userRes.user)
             } catch (err) {
                 console.error("Failed to fetch analytics", err)
@@ -72,7 +74,7 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
 
     return (
         <div className="min-h-screen bg-[#F9F9FB] flex font-sans">
-            <OrgSidebar orgId={orgId} orgName={org?.name || overview?.orgName || 'Organization'} />
+            <OrgSidebar orgId={orgId} orgName={org?.name || overview?.orgName || 'Organization'} role={role} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
@@ -95,110 +97,138 @@ export default function OrgDashboardPage({ params }: { params: Promise<{ orgId: 
                 <main className="flex-1 p-6 md:p-8 overflow-auto flex flex-col">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8">
                         <div>
-                            <h1 className="text-[28px] font-normal text-[#201F47] leading-tight mb-2 tracking-tight">Analytics Hub</h1>
-                            <p className="text-[15px] font-normal text-gray-500">Real-time insights and performance metrics for your organization.</p>
+                            <h1 className="text-[28px] font-normal text-[#201F47] leading-tight mb-2 tracking-tight">
+                                {role === 'staff' ? 'Staff Overview' : 'Analytics Hub'}
+                            </h1>
+                            <p className="text-[15px] font-normal text-gray-500">
+                                {role === 'staff'
+                                    ? 'Track your personal contributions and assigned tasks.'
+                                    : 'Real-time insights and performance metrics for your organization.'}
+                            </p>
                         </div>
                         <div className="flex gap-3">
-                             <Link href={`/admin/organizations/${orgId}/kanban`} className="px-4 py-2 bg-[#201F47] text-white text-[13px] rounded-xl hover:bg-[#14122d] transition-all flex items-center gap-2 shadow-lg shadow-[#201F47]/10">
+                            <Link href={`/admin/organizations/${orgId}/kanban`} className="px-4 py-2 bg-[#201F47] text-white text-[13px] rounded-xl hover:bg-[#14122d] transition-all flex items-center gap-2 shadow-lg shadow-[#201F47]/10">
                                 <Activity className="w-4 h-4" />
                                 Open Board
-                             </Link>
+                            </Link>
                         </div>
                     </div>
 
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <KPICard title="Total Issues" value={overview?.total} icon={<Activity className="text-blue-500" />} trend="+12% from last month" />
-                        <KPICard title="Open Issues" value={overview?.open} icon={<AlertCircle className="text-red-500" />} trend="Requires attention" />
-                        <KPICard title="Avg. Resolution" value={`${overview?.avgResolutionHours || 0}h`} icon={<Clock className="text-orange-500" />} trend="Improved performance" />
-                        <KPICard title="Resolution Rate" value={`${overview?.resolutionRate || 0}%`} icon={<CheckCircle2 className="text-green-500" />} trend="Consistent performance" />
-                    </div>
+                    {role === 'staff' ? (
+                        <div className="space-y-8 text-center py-20 bg-white rounded-[32px] border border-dashed border-gray-200">
+                            <div className="w-20 h-20 bg-[#088395]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Users className="w-10 h-10 text-[#088395]" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-normal text-[#201F47] mb-2">Welcome to the Staff Portal</h3>
+                                <p className="text-gray-500 max-w-sm mx-auto">
+                                    As a Staff member, you can track your assigned issues and collaborate on the board.
+                                    Organization-wide analytics are restricted to management.
+                                </p>
+                            </div>
+                            <div className="flex justify-center gap-4">
+                                <Link href={`/admin/organizations/${orgId}/kanban`} className="px-6 py-3 bg-[#088395] text-white rounded-2xl hover:bg-[#066d7c] transition-all shadow-lg shadow-[#088395]/10">
+                                    View My Board
+                                </Link>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* KPI Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                <KPICard title="Total Issues" value={overview?.total} icon={<Activity className="text-blue-500" />} trend="+12% from last month" />
+                                <KPICard title="Open Issues" value={overview?.open} icon={<AlertCircle className="text-red-500" />} trend="Requires attention" />
+                                <KPICard title="Avg. Resolution" value={`${overview?.avgResolutionHours || 0}h`} icon={<Clock className="text-orange-500" />} trend="Improved performance" />
+                                <KPICard title="Resolution Rate" value={`${overview?.resolutionRate || 0}%`} icon={<CheckCircle2 className="text-green-500" />} trend="Consistent performance" />
+                            </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                        {/* Submission Trends */}
-                        <ChartWrapper title="Submission Volume" subtitle="Daily reports over time" icon={<TrendingUp className="w-4 h-4" />}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <AreaChart data={trends}>
-                                    <defs>
-                                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#576CDB" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#576CDB" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
-                                    <Tooltip 
-                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                                    />
-                                    <Area type="monotone" dataKey="count" stroke="#576CDB" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </ChartWrapper>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                {/* Submission Trends */}
+                                <ChartWrapper title="Submission Volume" subtitle="Daily reports over time" icon={<TrendingUp className="w-4 h-4" />}>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <AreaChart data={trends}>
+                                            <defs>
+                                                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#576CDB" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#576CDB" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                                            <Tooltip
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                            />
+                                            <Area type="monotone" dataKey="count" stroke="#576CDB" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </ChartWrapper>
 
-                        {/* Status Distribution */}
-                        <ChartWrapper title="Status Distribution" subtitle="Issue lifecycle breakdown" icon={<PieIcon className="w-4 h-4" />}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <PieChart>
-                                    <Pie
-                                        data={statusDist}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={80}
-                                        outerRadius={100}
-                                        paddingAngle={5}
-                                        dataKey="count"
-                                        nameKey="status"
-                                    >
-                                        {statusDist.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </ChartWrapper>
+                                {/* Status Distribution */}
+                                <ChartWrapper title="Status Distribution" subtitle="Issue lifecycle breakdown" icon={<PieIcon className="w-4 h-4" />}>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <PieChart>
+                                            <Pie
+                                                data={statusDist}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={80}
+                                                outerRadius={100}
+                                                paddingAngle={5}
+                                                dataKey="count"
+                                                nameKey="status"
+                                            >
+                                                {statusDist.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip />
+                                            <Legend />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartWrapper>
 
-                        {/* Category Analysis */}
-                        <ChartWrapper title="Category Breakdown" subtitle="Issues reported by category" icon={<BarChart3 className="w-4 h-4" />}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={categories} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                                    <XAxis type="number" axisLine={false} tickLine={false} hide />
-                                    <YAxis 
-                                        dataKey="categoryName" 
-                                        type="category" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{fill: '#4B5563', fontSize: 12}}
-                                        width={100}
-                                    />
-                                    <Tooltip 
-                                        cursor={{fill: 'transparent'}}
-                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                                    />
-                                    <Bar dataKey="count" fill="#088395" radius={[0, 4, 4, 0]} barSize={20} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartWrapper>
+                                {/* Category Analysis */}
+                                <ChartWrapper title="Category Breakdown" subtitle="Issues reported by category" icon={<BarChart3 className="w-4 h-4" />}>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={categories} layout="vertical">
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                                            <XAxis type="number" axisLine={false} tickLine={false} hide />
+                                            <YAxis
+                                                dataKey="categoryName"
+                                                type="category"
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#4B5563', fontSize: 12 }}
+                                                width={100}
+                                            />
+                                            <Tooltip
+                                                cursor={{ fill: 'transparent' }}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                            />
+                                            <Bar dataKey="count" fill="#088395" radius={[0, 4, 4, 0]} barSize={20} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </ChartWrapper>
 
-                        {/* Staff Efficiency */}
-                        <ChartWrapper title="Staff Performance" subtitle="Resolved issues per member" icon={<Users className="w-4 h-4" />}>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={staffPerf}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                    <XAxis dataKey="fullName" axisLine={false} tickLine={false} tick={{fill: '#4B5563', fontSize: 11}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 11}} />
-                                    <Tooltip 
-                                        cursor={{fill: '#f9fafb'}}
-                                        contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
-                                    />
-                                    <Bar dataKey="resolvedCount" fill="#576CDB" radius={[4, 4, 0, 0]} barSize={40} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </ChartWrapper>
-                    </div>
+                                {/* Staff Efficiency */}
+                                <ChartWrapper title="Staff Performance" subtitle="Resolved issues per member" icon={<Users className="w-4 h-4" />}>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart data={staffPerf}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                            <XAxis dataKey="fullName" axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 11 }} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                                            <Tooltip
+                                                cursor={{ fill: '#f9fafb' }}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                            />
+                                            <Bar dataKey="resolvedCount" fill="#576CDB" radius={[4, 4, 0, 0]} barSize={40} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </ChartWrapper>
+                            </div>
+                        </>
+                    )}
                 </main>
             </div>
 
