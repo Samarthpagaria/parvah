@@ -2,7 +2,7 @@ const { supabaseAdmin } = require("../config/db");
 const Groq = require("groq-sdk");
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
+console.log("Groq key:", process.env.GROQ_API_KEY);
 const citizenSystemPrompt = `You are 'Parvah Assistant', an intelligent, polite, and helpful AI support agent for Parvah. 
 
 **What is Parvah?**

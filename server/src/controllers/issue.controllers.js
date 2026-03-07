@@ -2,6 +2,7 @@
 const { supabaseAdmin } = require('../config/db');
 const { logActivity } = require('../services/activity.service');
 const { sendNotification } = require('../services/notification.service');
+const { sendIssueStatusMail } = require('../services/mail.service');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -260,6 +261,15 @@ exports.createIssue = async (req, res) => {
             orgId: org_id,
         });
 
+        // Trigger email notification for Issue Created
+        const { data: userProfile } = await supabaseAdmin.from('public_users').select('email').eq('id', userId).single();
+        if (userProfile?.email) {
+            console.log(`[createIssue:EMAIL_TRIGGER] Sending creation email for issue=${issue.id} to=${userProfile.email}`);
+            sendIssueStatusMail(userProfile.email, title, 'created')
+                .then(() => console.log(`[createIssue:EMAIL_SUCCESS] Sent creation email to=${userProfile.email} for issueId=${issue.id}`))
+                .catch(err => console.error(`[createIssue:EMAIL_ERROR] issueId=${issue.id}:`, err.message));
+        }
+
         // Notify org admins
         await sendNotification({
             orgId: org_id,
@@ -407,7 +417,10 @@ exports.updateIssueStatus = async (req, res) => {
 
         const { data: issue, error: fetchErr } = await supabaseAdmin
             .from('issues')
-            .select('id, org_id, assigned_to, status, reported_by')
+            .select(`
+                id, org_id, assigned_to, status, reported_by, title,
+                public_users!reported_by(email)
+            `)
             .eq('id', issueId)
             .single();
 
@@ -460,6 +473,19 @@ exports.updateIssueStatus = async (req, res) => {
             message: `Issue status changed to "${status}".`,
         });
 
+        // Trigger email notification for Status Updated
+        const emailEligibleStatuses = ['fixed', 'resolved', 'in_progress', 'rejected', 'on_hold', 'closed', 'completed'];
+        console.log(`[updateIssueStatus:EMAIL_CHECK] issue=${issueId} status=${status} has_email=${!!issue.public_users?.email} is_eligible=${emailEligibleStatuses.includes(status.toLowerCase())}`);
+
+        if (issue.public_users?.email && emailEligibleStatuses.includes(status.toLowerCase())) {
+            console.log(`[updateIssueStatus:EMAIL_TRIGGER] Sending status email for issue=${issueId} to=${issue.public_users.email} status=${status}`);
+            sendIssueStatusMail(issue.public_users.email, issue.title, status)
+                .then(() => console.log(`[updateIssueStatus:EMAIL_SUCCESS] Sent update email to=${issue.public_users.email} for issueId=${issueId}`))
+                .catch(err => console.error(`[updateIssueStatus:EMAIL_ERROR] issueId=${issueId}:`, err.message));
+        } else if (!issue.public_users?.email) {
+            console.warn(`[updateIssueStatus:EMAIL_SKIP] Skipping email for issue=${issueId}: No email found for reporter=${issue.reported_by}`);
+        }
+
         return res.json({ issue: updated });
     } catch (err) {
         console.error('updateIssueStatus error:', err);
@@ -483,7 +509,10 @@ exports.assignIssue = async (req, res) => {
 
         const { data: issue, error: fetchErr } = await supabaseAdmin
             .from('issues')
-            .select('id, org_id, assigned_to')
+            .select(`
+                id, org_id, assigned_to, title,
+                public_users!reported_by(email)
+            `)
             .eq('id', issueId)
             .single();
 
@@ -532,6 +561,14 @@ exports.assignIssue = async (req, res) => {
             title: 'Issue assigned to you',
             message: `You have been assigned to issue #${issueId}.`,
         });
+
+        // Trigger email notification for Issue Assigned
+        if (issue.public_users?.email) {
+            console.log(`[assignIssue:EMAIL_TRIGGER] Sending assignment email for issue=${issueId} to=${issue.public_users.email}`);
+            sendIssueStatusMail(issue.public_users.email, issue.title, 'assigned')
+                .then(() => console.log(`[assignIssue:EMAIL_SUCCESS] Sent assignment email to=${issue.public_users.email} for issueId=${issueId}`))
+                .catch(err => console.error(`[assignIssue:EMAIL_ERROR] issueId=${issueId}:`, err.message));
+        }
 
         return res.json({ issue: updated });
     } catch (err) {
