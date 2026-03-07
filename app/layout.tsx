@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Poppins } from 'next/font/google'
 import './globals.css'
 
@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   title: 'Parvah - Civic Issue Tracking',
   description: 'Parvah: A comprehensive civic issue tracking and management platform for administrators, staff, and citizens',
   generator: 'v0.app',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   icons: {
     icon: [
       {
@@ -31,6 +30,12 @@ export const metadata: Metadata = {
     ],
     apple: '/apple-icon.png',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({

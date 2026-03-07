@@ -5,10 +5,9 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { issueAPI, orgAPI } from '@/utils/backend_api_endpoints'
 
-// Supabase client for storage uploads (uses public anon key)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Supabase URL/key — resolved lazily inside the component (browser-only)
+const getSupabaseUrl = () => process.env.NEXT_PUBLIC_SUPABASE_URL!
+const getSupabaseAnonKey = () => process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Allowed file types
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
@@ -271,7 +270,7 @@ export default function NewIssuePage() {
         }
 
         // Create a supabase client with the user's token for storage
-        const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+        const userSupabase = createClient(getSupabaseUrl(), getSupabaseAnonKey(), {
             global: { headers: token ? { Authorization: `Bearer ${token}` } : {} },
         })
 
