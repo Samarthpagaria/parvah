@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { authAPI } from '@/utils/backend_api_endpoints'
-
+import React from "react";
 type Tab = 'profile' | 'security' | 'activity'
 
 const recentActivity = [
@@ -21,7 +21,7 @@ const loginSessions = [
     { device: 'Firefox on Mac', ip: '172.16.0.3', time: 'Yesterday 6:10 PM', current: false },
 ]
 
-const activityTypeConfig: Record<string, { color: string; icon: JSX.Element }> = {
+const activityTypeConfig: Record<string, { color: string; icon: React.ReactNode }> = {
     approved: {
         color: 'bg-emerald-50 text-emerald-600',
         icon: <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
