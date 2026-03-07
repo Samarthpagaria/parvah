@@ -1,0 +1,46 @@
+
+> parvah@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.8s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/18) ...
+  Generating static pages using 7 workers (4/18) 
+  Generating static pages using 7 workers (8/18) 
+  Generating static pages using 7 workers (13/18) 
+✓ Generating static pages using 7 workers (18/18) in 2.4s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin/dashboard
+├ ○ /admin/login
+├ ○ /admin/organizations
+├ ƒ /admin/organizations/[orgId]/categories
+├ ƒ /admin/organizations/[orgId]/dashboard
+├ ƒ /admin/organizations/[orgId]/kanban
+├ ƒ /admin/organizations/[orgId]/members
+├ ƒ /admin/organizations/[orgId]/settings
+├ ○ /admin/organizations/new
+├ ○ /admin/profile
+├ ○ /dashboard
+├ ƒ /dashboard/issues/[issueId]
+├ ○ /dashboard/new-issue
+├ ○ /dashboard/profile
+├ ○ /icon.svg
+├ ○ /landing-page
+├ ○ /login
+├ ○ /staff/dashboard
+├ ○ /staff/login
+└ ○ /staff/register
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
