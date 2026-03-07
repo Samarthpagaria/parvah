@@ -6,13 +6,13 @@ import { issueAPI } from '@/utils/backend_api_endpoints'
 
 type IssueStatus = 'open' | 'in_progress' | 'on_hold' | 'resolved' | 'closed' | 'rejected'
 
-const statusConfig: Record<string, { label: string; color: string; dot: string; bg: string; border: string }> = {
-    'open': { label: 'Open', color: 'text-amber-600', dot: 'bg-amber-400', bg: 'bg-amber-50', border: 'border-amber-200' },
-    'in_progress': { label: 'In Progress', color: 'text-[#576CDB]', dot: 'bg-[#576CDB]', bg: 'bg-[#576CDB]/10', border: 'border-[#576CDB]/20' },
-    'on_hold': { label: 'On Hold', color: 'text-orange-600', dot: 'bg-orange-500', bg: 'bg-orange-50', border: 'border-orange-200' },
-    'resolved': { label: 'Resolved', color: 'text-[#088395]', dot: 'bg-[#088395]', bg: 'bg-[#088395]/10', border: 'border-[#088395]/20' },
-    'closed': { label: 'Closed', color: 'text-gray-600', dot: 'bg-gray-400', bg: 'bg-gray-50', border: 'border-gray-200' },
-    'rejected': { label: 'Rejected', color: 'text-red-600', dot: 'bg-red-500', bg: 'bg-red-50', border: 'border-red-200' },
+const statusConfig: Record<string, { label: string; color: string; dot: string; bg: string; border: string; gradient: string }> = {
+    'open': { label: 'Open', color: 'text-amber-600', dot: 'bg-amber-400', bg: 'bg-amber-50', border: 'border-amber-200', gradient: 'from-amber-500 to-amber-600' },
+    'in_progress': { label: 'In Progress', color: 'text-[#576CDB]', dot: 'bg-[#576CDB]', bg: 'bg-[#576CDB]/10', border: 'border-[#576CDB]/20', gradient: 'from-[#576CDB] to-[#4c5cb6]' },
+    'on_hold': { label: 'On Hold', color: 'text-orange-600', dot: 'bg-orange-500', bg: 'bg-orange-50', border: 'border-orange-200', gradient: 'from-orange-500 to-orange-600' },
+    'resolved': { label: 'Resolved', color: 'text-[#088395]', dot: 'bg-[#088395]', bg: 'bg-[#088395]/10', border: 'border-[#088395]/20', gradient: 'from-[#088395] to-[#066f7d]' },
+    'closed': { label: 'Closed', color: 'text-gray-600', dot: 'bg-gray-400', bg: 'bg-gray-50', border: 'border-gray-200', gradient: 'from-gray-500 to-gray-600' },
+    'rejected': { label: 'Rejected', color: 'text-red-600', dot: 'bg-red-500', bg: 'bg-red-50', border: 'border-red-200', gradient: 'from-red-500 to-red-600' },
 }
 
 const priorityConfig: Record<string, { color: string; bg: string }> = {
@@ -316,22 +316,37 @@ export default function IssueDetailPage({ params }: { params: Promise<{ issueId:
                     {/* Right: Sidebar */}
                     <div className="space-y-6">
                         {/* Summary Status Panel */}
-                        <div className={`bg-[#201F47] rounded-3xl p-8 text-white shadow-xl shadow-[#201F47]/20 ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.18s' }}>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-6">Current Status</p>
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className={`w-3 h-3 rounded-full animate-pulse ${s.dot}`} />
-                                <h4 className="text-2xl font-bold">{s.label}</h4>
-                            </div>
-                            <div className="space-y-4 pt-6 border-t border-white/10">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-white/50">Urgency</span>
-                                    <span className={`font-bold px-2 py-0.5 rounded-lg text-[10px] uppercase tracking-wider ${pc.bg} ${pc.color}`}>
-                                        {issue.priority || 'Medium'}
-                                    </span>
+                        <div className={`relative overflow-hidden rounded-3xl p-8 text-white shadow-xl ${isMounted ? 'animate-up' : ''}`} style={{ animationDelay: '0.18s' }}>
+                            <div className={`absolute inset-0 bg-gradient-to-br ${s.gradient} opacity-100`} />
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16" />
+                            <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-2xl -ml-12 -mb-12" />
+
+                            <div className="relative z-10">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70 mb-6">Current Status</p>
+                                <div className="flex items-center gap-3 mb-8">
+                                    <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+                                        <div className={`w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_12px_rgba(255,255,255,0.8)] ${s.dot}`} />
+                                    </div>
+                                    <h4 className="text-2xl font-bold tracking-tight">{s.label}</h4>
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-white/50">Staff</span>
-                                    <span className="font-bold text-teal-400">{issue.assignedTo || 'Pending'}</span>
+                                <div className="space-y-4 pt-6 border-t border-white/10">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-white/60 font-medium">Priority</span>
+                                        <span className={`font-bold px-2.5 py-1 rounded-lg text-[10px] uppercase tracking-wider bg-white/20 backdrop-blur-sm border border-white/10 text-white`}>
+                                            {issue.priority || 'Medium'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-white/60 font-medium">Assigned To</span>
+                                        <div className="flex items-center gap-2">
+                                            {issue.assignedTo ? (
+                                                <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold border border-white/20">
+                                                    {issue.assignedTo.charAt(0)}
+                                                </div>
+                                            ) : null}
+                                            <span className="font-bold text-white">{issue.assignedTo || 'Unassigned'}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
