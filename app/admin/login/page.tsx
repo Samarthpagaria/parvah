@@ -258,13 +258,6 @@ export default function AdminLoginPage() {
                   </button>
                 </form>
 
-                {/* Staff hint */}
-                {isLogin && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', marginTop: '.85rem', padding: '.55rem .7rem', borderRadius: '.5rem', background: '#EBF4F6', border: '1px solid #c8e0e8' }}>
-                    <svg width="12" height="12" fill="none" stroke="#088395" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <p style={{ fontSize: '.67rem', color: '#7AB2B2' }}>Staff: use <strong style={{ color: '#09637E' }}>staff@gmail.com</strong></p>
-                  </div>
-                )}
 
                 <p style={{ textAlign: 'center', fontSize: '.69rem', color: '#9EAEBB', marginTop: '.95rem' }}>
                   {isLogin ? "Don't have an account? " : 'Already registered? '}

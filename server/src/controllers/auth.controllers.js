@@ -169,7 +169,10 @@ const registerPublicUser = async (req, res) => {
 
     if (insertError) {
       console.error("[registerPublic:DB_INSERT_ERROR]", insertError.message);
-      return res.status(500).json({ error: "Failed to create user profile" });
+      if (insertError.message.includes("org_id")) {
+        return res.status(500).json({ error: "Organization is required for registration in the database schema. Please make org_id nullable in Supabase Dashboard." });
+      }
+      return res.status(500).json({ error: "Failed to create user profile. Please try again." });
     }
 
     res.status(201).json({
