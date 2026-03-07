@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 
 // Staff now log in through the shared Admin Login page.
-// staff@gmail.com → redirected to /staff/dashboard automatically.
 export default function StaffLoginRedirect() {
   useEffect(() => {
     window.location.replace('/admin/login')

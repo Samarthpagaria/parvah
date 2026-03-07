@@ -123,8 +123,8 @@ exports.getOverview = async (req, res) => {
             inProgress: inProgress || 0,
             resolvedThisMonth: resolvedThisMonth || 0,
             totalResolved: totalResolved || 0,
-            avgResolutionHours: avgResolutionHours ?? 'N/A',
-            resolutionRate: `${resolutionRate}%`,
+            avgResolutionHours: avgResolutionHours ?? null,
+            resolutionRate: resolutionRate,
         });
     } catch (err) {
         console.error('getOverview error:', err);
